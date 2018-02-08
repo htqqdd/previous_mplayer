@@ -20,7 +20,7 @@ import java.util.List;
  * Created by lixiang on 2017/3/16.
  */
 
-public class Data {
+public class MusicData {
 //程序常量
     public static String pausing = "PAUSING";
     public static String playing = "PLAYING";
@@ -115,28 +115,36 @@ public class Data {
     public static ArrayList<music_playtimes> getTimeslist() {return playtimesArrayList;}
 
     public static void set_mediaDuration(int media_duration) {
-        Data.mediaDuration = media_duration;
+        MusicData.mediaDuration = media_duration;
     }
     public static void set_mediaCurrentPosition(int media_CurrentPosition) {
-        Data.mediaCurrentPosition = media_CurrentPosition;
+        MusicData.mediaCurrentPosition = media_CurrentPosition;
     }
     public static void setPlayMode(int playMode){
-        Data.playMode = playMode;
+        MusicData.playMode = playMode;
     }
     public static void setPosition(int position){
-        Data.position = position;
+        MusicData.position = position;
     }
     public static void setState(String state){
-        Data.state = state;
+        MusicData.state = state;
     }
-    public static void setNextMusic(int position){Data.nextMusic = position;}
-    public static void setRecent(boolean b){Data.is_recent = b;}
-    public static void setFavourite(boolean b){Data.is_favourite = b;}
-    public static void setRecent_position(int position){Data.Recent_position = position;}
-    public static void setFavourite_position(int position){Data.Favourite_position = position;}
-    public static void setServiceStarted(boolean true_or_false){Data.serviceStarted = true_or_false;}
-    public static void setColorPrimarySetted(int color){Data.colorPrimarySetted = color;}
-    public static void setColorAccentSetted(int color){Data.colorAccentSetted = color;}
+    public static void setNextMusic(int position){
+        MusicData.nextMusic = position;}
+    public static void setRecent(boolean b){
+        MusicData.is_recent = b;}
+    public static void setFavourite(boolean b){
+        MusicData.is_favourite = b;}
+    public static void setRecent_position(int position){
+        MusicData.Recent_position = position;}
+    public static void setFavourite_position(int position){
+        MusicData.Favourite_position = position;}
+    public static void setServiceStarted(boolean true_or_false){
+        MusicData.serviceStarted = true_or_false;}
+    public static void setColorPrimarySetted(int color){
+        MusicData.colorPrimarySetted = color;}
+    public static void setColorAccentSetted(int color){
+        MusicData.colorAccentSetted = color;}
 
     public static void initialMusicInfo(Context context){
         Log.v("Context","Context是"+context);
@@ -196,7 +204,7 @@ public class Data {
         _date = new Date[cursor.getCount()];
 
         for (int i = 0; i < cursor.getCount(); i++) {
-            File music = new File(Data.getData(i));
+            File music = new File(MusicData.getData(i));
             Date date = new Date(music.lastModified());
             _date[i] = date;
             music_dates.add(new music_date(i,_date[i]));

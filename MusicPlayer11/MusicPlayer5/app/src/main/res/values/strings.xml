@@ -24,12 +24,18 @@
     </string-array>
     <string name="start_page_entries_default">suggestion</string>
 
-    <string-array name="suggestion_entries">
-        <item>显示3首</item>
-        <item>显示6首</item>
-        <item>显示12首</item>
-        <item>显示18首</item>
+    <string-array name="music_filtration_entries">
+        <item>不显示小于30s的歌曲</item>
+        <item>不显示小于45s的歌曲</item>
+        <item>不显示小于60s的歌曲</item>
     </string-array>
+    <string-array name="music_filtration_entries_value">
+        <item>thirty</item>
+        <item>forty_five</item>
+        <item>sixty</item>
+    </string-array>
+    <string name="music_filtration_entries_default">thirty</string>
+
     <string-array name="preset_equalizer">
         <item>原音音效</item>
         <item>古典音乐</item>
@@ -44,6 +50,12 @@
         <item>电子音乐</item>
         <item>小型喇叭</item>
         <item>自定义</item>
+    </string-array>
+    <string-array name="suggestion_entries">
+        <item>显示3首</item>
+        <item>显示6首</item>
+        <item>显示12首</item>
+        <item>显示18首</item>
     </string-array>
     <string-array name="suggestion_entries_value">
         <item>three</item>

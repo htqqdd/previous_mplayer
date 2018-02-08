@@ -22,6 +22,14 @@
             android:entryValues="@array/suggestion_entries_value"
             android:dialogTitle="建议歌曲数目"
             android:defaultValue="@string/suggestion_entries_default" />
+        <ListPreference
+            android:key="filtration"
+            android:summary="不显示时间过短的音乐"
+            android:title="音乐筛除"
+            android:entries="@array/music_filtration_entries"
+            android:entryValues="@array/music_filtration_entries_value"
+            android:dialogTitle="音乐筛除"
+            android:defaultValue="@string/music_filtration_entries_default" />
     </PreferenceCategory>
     <PreferenceCategory
         android:key="theme"

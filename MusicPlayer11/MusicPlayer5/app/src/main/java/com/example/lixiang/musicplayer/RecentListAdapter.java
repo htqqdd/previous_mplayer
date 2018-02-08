@@ -18,9 +18,8 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
-import java.util.Date;
+import java.util.ArrayList;
 
-import static com.example.lixiang.musicplayer.Data.infoInitialized;
 import static com.example.lixiang.musicplayer.Data.playAction;
 
 
@@ -30,7 +29,6 @@ import static com.example.lixiang.musicplayer.Data.playAction;
 
 public class RecentListAdapter extends RecyclerView.Adapter<RecentListAdapter.ViewHolder> {
     private Context mContext;
-
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -101,4 +99,5 @@ public class RecentListAdapter extends RecyclerView.Adapter<RecentListAdapter.Vi
             singer = (TextView) view.findViewById(R.id.Recent_list_singer);
         }
     }
+
 }

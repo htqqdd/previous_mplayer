@@ -48,7 +48,7 @@
                 android:layout_marginRight="16dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:baselineAlignBottom="true"
-                android:onClick="play_or_pause"
+                android:onClick="title_play_or_pause"
                 android:src="@drawable/play_black"/>
         </RelativeLayout>
 
@@ -160,7 +160,7 @@
                 android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
                 android:layout_toRightOf="@id/left"
-                android:onClick="play_or_pause"
+                android:onClick="main_play_or_pause"
                 android:scaleType="centerInside"
                 android:src="@drawable/play_black"
                 app:backgroundTint="#ffffff" />

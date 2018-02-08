@@ -49,6 +49,7 @@ import es.dmoral.toasty.Toasty;
 
 import static com.example.lixiang.musicplayer.Data.deleteAction;
 import static com.example.lixiang.musicplayer.Data.initialize;
+import static com.example.lixiang.musicplayer.Data.isHasInitialized;
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
 import static com.example.lixiang.musicplayer.Data.nextAction;
 import static com.example.lixiang.musicplayer.Data.pauseAction;
@@ -61,7 +62,6 @@ import static com.example.lixiang.musicplayer.Data.sc_playAction;
 public class PlayService extends Service implements AudioManager.OnAudioFocusChangeListener,MediaPlayer.OnCompletionListener,MediaPlayer.OnErrorListener {
     private String path;
     private MediaPlayer mediaPlayer;
-    private boolean fromUser = true;
     private ServiceReceiver serviceReceiver;
     private boolean onetime = true;
     private static final int NOTIFICATION_ID = 101;
@@ -138,22 +138,14 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         requestAudioFocus();
         if (intent.getIntExtra("ACTION", -2) == initialize) {
             Data.setPosition(0);
-            positionNow = 0;
         }
         if (intent.getIntExtra("ACTION", -2) == sc_playAction) {
-            Log.v("接收到playAction", "startCommand" + Data.getServiceState());
-            if (Data.getInfoInitialized() != 3) {
-                Log.v("重新载入数据", "重新载入数据");
-                Data.initialMusicInfo(this);
-                Data.initialMusicPlaytimes(this);
-                Data.initialMusicDate(this);
-            }
+            if(isHasInitialized() == false){
+                Data.initialMusicInfo(this);}
             if (Data.getPlayMode() != 1) {
                 play(Data.getPosition());
-                Log.v("发送play方法", "startCommand" + Data.getServiceState());
             } else {
                 positionNow = randomPosition();
-                Data.setPosition(positionNow);
                 play(positionNow);
             }
         }
@@ -186,13 +178,12 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                     mediaPlayer.setOnErrorListener(this);
                     audioSessionId = mediaPlayer.getAudioSessionId();
                     initialAudioEffect(audioSessionId);
-                } else if (!mediaPlayer.isPlaying() && fromUser) resume();
+                } else if (!mediaPlayer.isPlaying()) resume();
                 mediaPlayer.setVolume(1.0f, 1.0f);
                 break;
             case AudioManager.AUDIOFOCUS_LOSS:
                 //The service lost audio focus, the user probably moved to playing media on another app, so release the media player.
                 Log.v("AUDIOFOCUS_LOSS", "焦点丢失");
-                fromUser = false;
                 pause();
                 releaseMedia();
                 break;
@@ -200,7 +191,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 Log.v("FOCUS_LOSS_TRANSIENT", "焦点暂时丢失");
                 //Focus lost for a short time, pause the MediaPlayer.
                 if (mediaPlayer.isPlaying()) {
-                    fromUser = false;
                     pause();
                 }
                 break;
@@ -250,22 +240,10 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 
     public void play(final int position) {
         Log.v("play方法执行", "play" + Data.getServiceState());
-        fromUser = true;
         requestAudioFocus();
         mediaPlayer.reset();
         Log.v("音乐Session", "音乐" + mediaPlayer.getAudioSessionId());
         path = Data.getData(position);
-        if (onetime) {
-            Intent intent = new Intent("play_broadcast");
-            intent.putExtra("UIChange", initialize);
-            sendBroadcast(intent);
-        }
-        Intent intent = new Intent("play_broadcast");
-        intent.putExtra("UIChange", mediaChangeAction);
-        sendBroadcast(intent);
-        Data.setState(playing);
-        positionNow = position;
-        Data.setPosition(position);
         try {
             mediaPlayer.setDataSource(path);
             mediaPlayer.prepare(); // 进行缓冲
@@ -274,7 +252,16 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
             e.printStackTrace();
         }
         mediaPlayer.start();
-        Log.v("音乐Session", "音乐" + mediaPlayer.getAudioSessionId());
+        Data.setState(playing);
+        Data.setPosition(position);
+        if (onetime) {
+            Intent intent = new Intent("play_broadcast");
+            intent.putExtra("UIChange", initialize);
+            sendBroadcast(intent);
+        }
+        Intent intent = new Intent("play_broadcast");
+        intent.putExtra("UIChange", mediaChangeAction);
+        sendBroadcast(intent);
         updateMetaData();
         buildNotification(playing);
         //储存播放次数
@@ -290,7 +277,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     //生成随机数[0-n)
     public int randomPosition() {
         Random random = new Random();
-        int random_position = random.nextInt(Data.getCursor().getCount() - 1);
+        int random_position = random.nextInt(Data.getTotalNumber() - 1);
         return random_position;
     }
 
@@ -305,7 +292,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                     Log.v("发送play方法", "startCommand" + Data.getServiceState());
                 } else {
                     positionNow = randomPosition();
-                    Data.setPosition(positionNow);
                     play(positionNow);
                 }
             }
@@ -425,8 +411,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     }
 
     private boolean removeAudioFocus() {
-        return AudioManager.AUDIOFOCUS_REQUEST_GRANTED ==
-                audioManager.abandonAudioFocus(this);
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        return AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioManager.abandonAudioFocus(this);
     }
 
     //Handle incoming phone calls
@@ -487,46 +473,39 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                     if (Data.IsRecent()) {
                         if (Data.getRecent_position() < Data.getDateSublist().size() - 1) {
                             positionNow = Data.getDateSublist().get(Data.getRecent_position() + 1).getPosition();
-                            Data.setPosition(positionNow);
                             Data.setRecent_position(Data.getRecent_position() + 1);
-                            return Data.getPosition();
+                            return positionNow;
                         } else {
                             positionNow = Data.getDateSublist().get(0).getPosition();
-                            Data.setPosition(positionNow);
                             Data.setRecent_position(0);
-                            return Data.getPosition();
+                            return positionNow;
                         }
                     } else if (Data.IsFavourite()) {
 
                         if (Data.getFavourite_position() < Data.getTimessublist().size() - 1) {
                             positionNow = Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() + 1).getId());
-                            Data.setPosition(positionNow);
                             Data.setFavourite_position(Data.getFavourite_position() + 1);
-                            return Data.getPosition();
+                            return positionNow;
                         } else {
                             positionNow = Data.findPositionById(Data.getTimessublist().get(0).getId());
-                            Data.setPosition(positionNow);
                             Data.setFavourite_position(0);
-                            return Data.getPosition();
+                            return positionNow;
                         }
 
                     } else {
 
-                        if (Data.getPosition() < Data.getCursor().getCount() - 1) {
+                        if (Data.getPosition() < Data.getTotalNumber() - 1) {
                             positionNow = Data.getPosition() + 1;
-                            Data.setPosition(positionNow);
-                            return Data.getPosition();
+                            return positionNow;
                         } else {
                             positionNow = 0;
-                            Data.setPosition(positionNow);
-                            return Data.getPosition();
+                            return positionNow;
                         }
                     }
 
                 } else if (Data.getPlayMode() == 1) {//1:随机
                     positionNow = randomPosition();
-                    Data.setPosition(positionNow);
-                    return Data.getPosition();
+                    return positionNow;
                 } else if (Data.getPlayMode() == 2) {//2:单曲重复
                     return Data.getPosition();
                 } else if (Data.getPlayMode() == 3) {//3:顺序
@@ -536,9 +515,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                             return null;
                         } else {
                             positionNow = Data.getDateSublist().get(Data.getRecent_position() + 1).getPosition();
-                            Data.setPosition(positionNow);
                             Data.setRecent_position(Data.getRecent_position() + 1);
-                            return Data.getPosition();
+                            return positionNow;
                         }
 
                     } else if (Data.IsFavourite()) {
@@ -547,19 +525,17 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                             return null;
                         } else {
                             positionNow = Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() + 1).getId());
-                            Data.setPosition(positionNow);
                             Data.setFavourite_position(Data.getFavourite_position() + 1);
-                            return Data.getPosition();
+                            return positionNow;
                         }
 
                     } else {
 
-                        if (Data.getPosition() >= Data.getCursor().getCount() - 1) {
+                        if (Data.getPosition() >= Data.getTotalNumber() - 1) {
                             return null;
                         } else {
                             positionNow = Data.getPosition() + 1;
-                            Data.setPosition(positionNow);
-                            return Data.getPosition();
+                            return positionNow;
                         }
                     }
 
@@ -567,7 +543,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 
             } else {
                 positionNow = Data.getNextMusic();
-                Data.setPosition(positionNow);
                 Data.setNextMusic(-1);
                 return positionNow;
             }
@@ -581,7 +556,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 play((int) o);
             } else {
                 Toasty.info(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT, true).show();
-//                Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -594,47 +568,40 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 
                     if (Data.getRecent_position() <= 0) {
                         positionNow = Data.getDateSublist().get(Data.getDateSublist().size() - 1).getPosition();
-                        Data.setPosition(positionNow);
                         Data.setRecent_position(Data.getDateSublist().size() - 1);
-                        return Data.getPosition();
+                        return positionNow;
                     } else {
                         positionNow = Data.getDateSublist().get(Data.getRecent_position() - 1).getPosition();
-                        Data.setPosition(positionNow);
                         Data.setRecent_position(Data.getRecent_position() - 1);
-                        return Data.getPosition();
+                        return positionNow;
                     }
 
                 } else if (Data.IsFavourite()) {
 
                     if (Data.getFavourite_position() == 0) {
                         positionNow = Data.findPositionById(Data.getTimessublist().get(Data.getTimessublist().size() - 1).getId());
-                        Data.setPosition(positionNow);
                         Data.setFavourite_position(Data.getTimessublist().size() - 1);
-                        return Data.getPosition();
+                        return positionNow;
                     } else {
                         positionNow = Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() - 1).getId());
-                        Data.setPosition(positionNow);
                         Data.setFavourite_position(Data.getFavourite_position() - 1);
-                        return Data.getPosition();
+                        return positionNow;
                     }
 
                 } else {
 
                     if (Data.getPosition() == 0) {
-                        positionNow = Data.getCursor().getCount() - 1;
-                        Data.setPosition(positionNow);
-                        return Data.getPosition();
+                        positionNow = Data.getTotalNumber() - 1;
+                        return positionNow;
                     } else {
                         positionNow = Data.getPosition() - 1;
-                        Data.setPosition(positionNow);
-                        return Data.getPosition();
+                        return positionNow;
                     }
                 }
 
             } else if (Data.getPlayMode() == 1) {// 1:随机
                 positionNow = randomPosition();
-                Data.setPosition(positionNow);
-                return Data.getPosition();
+                return positionNow;
             } else if (Data.getPlayMode() == 2) {//2:单曲重复
                 return Data.getPosition();
 
@@ -645,9 +612,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                         return null;
                     } else {
                         positionNow = Data.getDateSublist().get(Data.getRecent_position() - 1).getPosition();
-                        Data.setPosition(positionNow);
                         Data.setRecent_position(Data.getRecent_position() - 1);
-                        return Data.getPosition();
+                        return positionNow;
                     }
 
                 } else if (Data.IsFavourite()) {
@@ -656,9 +622,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                         return null;
                     } else {
                         positionNow = Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() - 1).getId());
-                        Data.setPosition(positionNow);
                         Data.setFavourite_position(Data.getFavourite_position() - 1);
-                        return Data.getPosition();
+                        return positionNow;
                     }
 
                 } else {
@@ -667,8 +632,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                         return null;
                     } else {
                         positionNow = Data.getPosition() - 1;
-                        Data.setPosition(positionNow);
-                        return Data.getPosition();
+                        return positionNow;
                     }
 
                 }
@@ -682,7 +646,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 play((int) o);
             } else {
                 Toasty.info(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT, true).show();
-//                Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
             }
         }
     }

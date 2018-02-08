@@ -96,6 +96,7 @@ public class MainActivity extends CActivity {
     private int finalRadius = 0;
     private PlayService playService;
     private Timer mTimer;
+    private SlidingUpPanelLayout.PanelState pannelState;
 
 
     @Override
@@ -228,11 +229,14 @@ public class MainActivity extends CActivity {
                     updateSeekBar();
                 }
                 if (previousState == DRAGGING && newState == EXPANDED) {
+                    pannelState = EXPANDED;
+
                     //禁止手势滑动
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
                 }
                 if (previousState == DRAGGING && newState == COLLAPSED) {
                     mTimer.cancel();
+                    pannelState = COLLAPSED;
                     //恢复手势滑动
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
                 }
@@ -254,6 +258,7 @@ public class MainActivity extends CActivity {
         about.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (pannelState ==EXPANDED){
                 PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
                 popupMenu.getMenuInflater().inflate(R.menu.main_menu, popupMenu.getMenu());
                 popupMenu.show();
@@ -322,6 +327,7 @@ public class MainActivity extends CActivity {
                         return false;
                     }
                 });
+            }
             }
         });
 
@@ -512,18 +518,21 @@ public class MainActivity extends CActivity {
     }
 
     //播放，暂停按钮
-    public void play_or_pause(View view) {
-        change_play_or_pause_state();
+    public void title_play_or_pause(View view) {
+        if (pannelState == COLLAPSED){
+            if (Data.getState() == playing) {
+                playService.pause();
+            } else if (Data.getState() == pausing) {
+                playService.resume();
+            }
+        }
     }
 
-    public void change_play_or_pause_state() {
+    public void main_play_or_pause(View v) {
         if (Data.getState() == playing) {
-            //发送暂停广播
             playService.pause();
-//            Floatingbar.setImageResource(R.drawable.play_black);
         } else if (Data.getState() == pausing) {
             playService.resume();
-//            Floatingbar.setImageResource(R.drawable.pause_black);
         }
     }
 
@@ -620,7 +629,7 @@ public class MainActivity extends CActivity {
         String artist = Data.getArtist(position);
         int id = Data.getId(position);
         seekBar.setProgress(0);
-        seekBar.setMax(Data.get_mediaDuration(position));
+        seekBar.setMax(Data.getDuration(position));
         TextView main_song_title = (TextView) findViewById(R.id.main_song_title);
         ImageView play_pause_button = (ImageView) findViewById(R.id.play_pause_button);
         ImageView repeat_button = (ImageView) findViewById(R.id.repeat_button);
@@ -673,7 +682,7 @@ public class MainActivity extends CActivity {
 
     @NeedsPermission({Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
     void needsPermission() {
-        new initialTask().execute();
+        sendPermissionGranted();
     }
 
     @Override
@@ -844,22 +853,6 @@ public class MainActivity extends CActivity {
                         animation_change_color(color);
                     }
     });
-    }
-
-    private class initialTask extends AsyncTask{
-        @Override
-        protected void onPostExecute(Object o) {
-            super.onPostExecute(o);
-            sendPermissionGranted();
-            Log.v("发送初始广播","发送");
-        }
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-            Data.initialMusicInfo(MainActivity.this);
-            return null;
-
-        }
     }
 
 

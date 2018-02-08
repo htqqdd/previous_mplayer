@@ -41,9 +41,8 @@ import static com.example.lixiang.musicplayer.Data.playAction;
  */
 public class MusiclistFragment extends Fragment {
 
-    private FastScrollRecyclerView fastScrollRecyclerView;// 列表对象
     private View rootView;
-    private RelativeLayout random_play_title;
+    private boolean permissionGranted = false;
     private list_PermissionReceiver list_permissionReceiver;
     private UIReceiver uiReceiver;
 
@@ -69,26 +68,29 @@ public class MusiclistFragment extends Fragment {
         intentFilter.addAction("list_permission_granted");
         getActivity().registerReceiver(list_permissionReceiver, intentFilter);
 
-
-        rootView = inflater.inflate(R.layout.fragment_musiclist, container, false);
-        fastScrollRecyclerView = (FastScrollRecyclerView) rootView.findViewById(R.id.fastScrollRecyclerView);
-        new getColorTask().execute();
-
-
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            showMusicList();
-            Log.v("执行显示2","执行2");
-        }
-
-
-//删除歌曲更新界面广播
+        //动态注册更新界面广播
         uiReceiver = new UIReceiver();
         IntentFilter intentFilter2 = new IntentFilter();
         intentFilter2.addAction("ChangeUI_broadcast");
         getActivity().registerReceiver(uiReceiver, intentFilter2);
+
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            permissionGranted =true;
+        }
+
+        new getColorTask().execute();
+
+        rootView = inflater.inflate(R.layout.fragment_musiclist, container, false);
         return rootView;
 
+    }
 
+    @Override
+    public void onStart() {
+        if (permissionGranted) {
+            showMusicList();
+        }
+        super.onStart();
     }
 
     private class UIReceiver extends BroadcastReceiver {
@@ -107,7 +109,6 @@ public class MusiclistFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             //显示界面
-            Log.v("接收初始广播","接收");
             showMusicList();
         }
     }
@@ -160,6 +161,7 @@ public class getColorTask extends AsyncTask{
     protected void onPostExecute(Object o) {
         super.onPostExecute(o);
         int color = getResources().getColor((int)o);
+        FastScrollRecyclerView fastScrollRecyclerView = (FastScrollRecyclerView) rootView.findViewById(R.id.fastScrollRecyclerView);
         fastScrollRecyclerView.setThumbColor(color);
         fastScrollRecyclerView.setPopupBgColor(color);
         Data.setColorAccentSetted(getResources().getColor((int) o));
@@ -168,6 +170,7 @@ public class getColorTask extends AsyncTask{
     private void showMusicList(){
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        FastScrollRecyclerView fastScrollRecyclerView = (FastScrollRecyclerView) rootView.findViewById(R.id.fastScrollRecyclerView);
         fastScrollRecyclerView.setLayoutManager(layoutManager);
         fastScrollRecyclerView.setItemAnimator(new DefaultItemAnimator());
         FastScrollListAdapter adapter = new FastScrollListAdapter();

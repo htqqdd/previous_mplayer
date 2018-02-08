@@ -33,12 +33,14 @@ import static com.example.lixiang.musicplayer.R.id.recent;
 public class RecommendFragment extends Fragment {
 
     private PermissionReceiver permissionReceiver;
+    private boolean permissionGranted = false;
+    private View rootView;
 
 
     public RecommendFragment() {
         // Required empty public constructor
     }
-    public View rootView;
+
 
 
     @Override
@@ -60,13 +62,19 @@ public class RecommendFragment extends Fragment {
         getActivity().registerReceiver(permissionReceiver, intentFilter);
 
         if(ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-            new initialTask().execute();
-        }else {
+            permissionGranted = true;
         }
-        return rootView;
 
+        return rootView;
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        if(permissionGranted){
+            new initialTask().execute();
+        }
+    }
 
     private class PermissionReceiver extends BroadcastReceiver{
         @Override
@@ -114,8 +122,6 @@ public class RecommendFragment extends Fragment {
         @Override
         protected Object doInBackground(Object[] objects) {
             Data.initialMusicInfo(getActivity());
-            Data.initialMusicDate(getActivity());
-            Data.initialMusicPlaytimes(getActivity());
             return null;
         }
 

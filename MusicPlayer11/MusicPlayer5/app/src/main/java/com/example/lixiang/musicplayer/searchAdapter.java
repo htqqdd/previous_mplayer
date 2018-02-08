@@ -40,7 +40,7 @@ public class searchAdapter extends RecyclerView.Adapter<searchAdapter.ViewHolder
 
 public searchAdapter(){
     previous = new ArrayList<music_title>();
-    for (int i = 0; i < Data.getCursor().getCount(); i++) {
+    for (int i = 0; i < Data.getTotalNumber(); i++) {
         previous.add(new music_title(i,Data.getTitle(i)));
     }
     filtered = previous;

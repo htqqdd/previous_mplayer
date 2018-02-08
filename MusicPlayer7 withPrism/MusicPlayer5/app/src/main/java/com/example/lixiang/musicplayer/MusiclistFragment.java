@@ -72,8 +72,6 @@ public class MusiclistFragment extends Fragment {
 
         rootView = inflater.inflate(R.layout.fragment_musiclist, container, false);
         fastScrollRecyclerView = (FastScrollRecyclerView) rootView.findViewById(R.id.fastScrollRecyclerView);
-        new getColorTask().execute();
-
 
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             showMusicList();
@@ -81,14 +79,19 @@ public class MusiclistFragment extends Fragment {
         }
 
 
-//删除歌曲更新界面广播
+        //删除歌曲更新界面广播
         uiReceiver = new UIReceiver();
         IntentFilter intentFilter2 = new IntentFilter();
         intentFilter2.addAction("ChangeUI_broadcast");
         getActivity().registerReceiver(uiReceiver, intentFilter2);
         return rootView;
 
+    }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        new setColorTask().execute();
     }
 
     private class UIReceiver extends BroadcastReceiver {
@@ -113,7 +116,7 @@ public class MusiclistFragment extends Fragment {
     }
 
 
-public class getColorTask extends AsyncTask{
+public class setColorTask extends AsyncTask{
     @Override
     protected Object doInBackground(Object[] objects) {
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());

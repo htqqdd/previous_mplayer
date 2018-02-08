@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
@@ -33,6 +34,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
@@ -51,11 +53,15 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
+
 import com.bumptech.glide.Glide;
 import com.gyf.barlibrary.ImmersionBar;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.stylingandroid.prism.Prism;
+import com.stylingandroid.prism.filter.Filter;
+import com.stylingandroid.prism.filter.TintFilter;
 import com.tapadoo.alerter.Alerter;
-import org.polaric.colorful.CActivity;
+
 import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -66,6 +72,7 @@ import permissions.dispatcher.OnShowRationale;
 import permissions.dispatcher.PermissionRequest;
 import permissions.dispatcher.RuntimePermissions;
 
+import static android.R.attr.tint;
 import static android.view.View.GONE;
 import static com.example.lixiang.musicplayer.Data.initialize;
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
@@ -79,9 +86,10 @@ import static com.sothree.slidinguppanel.SlidingUpPanelLayout.PanelState.DRAGGIN
 import static com.sothree.slidinguppanel.SlidingUpPanelLayout.PanelState.EXPANDED;
 
 @RuntimePermissions
-public class MainActivity extends CActivity {
+public class MainActivity extends AppCompatActivity {
     private TextView main_song_title;
-    private static SeekBar seekBar;;
+    private static SeekBar seekBar;
+    ;
     private FloatingActionButton Floatingbar;
     private String path;
     private String title;
@@ -111,6 +119,9 @@ public class MainActivity extends CActivity {
     private TextView play_now_singer;
     private PlayService playService;
     private MediaPlayer mediaPlayer;
+    private Toolbar main_toolbar;
+    private Prism prismPrimary;
+    private Prism prismAccent;
 
 
     @Override
@@ -174,7 +185,7 @@ public class MainActivity extends CActivity {
 
 
         //新标题栏
-        Toolbar main_toolbar = (Toolbar) findViewById(R.id.main_toolbar);
+        main_toolbar = (Toolbar) findViewById(R.id.main_toolbar);
         main_toolbar.setTitleTextColor(getResources().getColor(R.color.colorCustomAccent));
         setSupportActionBar(main_toolbar);
         getSupportActionBar().setHomeButtonEnabled(true); //设置返回键可用
@@ -328,17 +339,27 @@ public class MainActivity extends CActivity {
                 });
             }
         });
-
-        new setColorTask().execute();
-
+        FloatingActionButton random_play = (FloatingActionButton) findViewById(R.id.random_play);
         if (Data.getState() == playing) {
-            FloatingActionButton random_play = (FloatingActionButton) findViewById(R.id.random_play);
+            random_play = (FloatingActionButton) findViewById(R.id.random_play);
             random_play.setVisibility(GONE);
             mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
             mLayout.setPanelHeight((int) (60 * getResources().getDisplayMetrics().density + 0.5f));
         }
 
         MainActivityPermissionsDispatcher.needsPermissionWithCheck(this);
+
+        // --- 创建 Prism 实例 ---------------------
+        AppBarLayout appBarLayout = (AppBarLayout) findViewById(R.id.appbarlayout);
+        prismPrimary = Prism.Builder.newInstance()
+                .background(appBarLayout)
+                .build();
+        // ----------------------------------------
+
+        prismAccent = Prism.Builder.newInstance()
+                .background(random_play)
+                .build();
+        // ----------------------------------------
     }
 
     @Override
@@ -385,8 +406,8 @@ public class MainActivity extends CActivity {
             }
         });
 
-
         return true;
+
     }
 
 
@@ -395,6 +416,9 @@ public class MainActivity extends CActivity {
         Log.e("OnStart执行", "OnStart");
         super.onStart();
 
+        new setColorTask().execute();
+        new setAccentColorTask().execute();
+
         ensureServiceStarted();
 
         //绑定服务
@@ -402,7 +426,7 @@ public class MainActivity extends CActivity {
         bindService(bindIntent, conn, BIND_AUTO_CREATE);
 
         //拖动seekbar
-        seekBar.setPadding(0,0,0,0);
+        seekBar.setPadding(0, 0, 0, 0);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -482,18 +506,12 @@ public class MainActivity extends CActivity {
     }
     //以下为公共方法
 
-    public void display() {
-        //初始化ScrollingUpPanel
-        ChangeScrollingUpPanel(Data.getPosition());
-        main_song_title.setText(Data.getTitle(Data.getPosition()));
-    }
-
     public void sendPermissionGranted() {
         Intent intent = new Intent("permission_granted");
         sendBroadcast(intent);
         Intent intent2 = new Intent("list_permission_granted");
         sendBroadcast(intent2);
-        Log.v("发送初始广播","发送2");
+        Log.v("发送初始广播", "发送2");
     }
 
     //播放，暂停按钮
@@ -597,10 +615,11 @@ public class MainActivity extends CActivity {
     }
 
     public void animation_change_color(int Int) {
-        if (cx==0){
-        cx = floatingActionButton.getLeft() + main_control_layout.getLeft()+floatingActionButton.getWidth()/2;
-        cy = control_layout.getTop()-seekBar.getTop()+floatingActionButton.getTop()+floatingActionButton.getHeight()/2;
-        finalRadius = Math.max(play_now_back_color.getWidth(), play_now_back_color.getHeight());}
+        if (cx == 0) {
+            cx = floatingActionButton.getLeft() + main_control_layout.getLeft() + floatingActionButton.getWidth() / 2;
+            cy = control_layout.getTop() - seekBar.getTop() + floatingActionButton.getTop() + floatingActionButton.getHeight() / 2;
+            finalRadius = Math.max(play_now_back_color.getWidth(), play_now_back_color.getHeight());
+        }
         final int Int1 = Int;
         final RelativeLayout activity_now_play = (RelativeLayout) findViewById(R.id.activity_now_play);
         if (cx != 0) {
@@ -730,7 +749,7 @@ public class MainActivity extends CActivity {
                 FloatingActionButton random_play = (FloatingActionButton) findViewById(R.id.random_play);
                 random_play.setVisibility(GONE);
                 SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-                mLayout.setPanelHeight((int) (60*getResources().getDisplayMetrics().density+0.5f));
+                mLayout.setPanelHeight((int) (60 * getResources().getDisplayMetrics().density + 0.5f));
             }
 
             if (intent.getIntExtra("UIChange", 0) == pauseAction) {
@@ -809,13 +828,15 @@ public class MainActivity extends CActivity {
         }
     }
 
-    private class initialTask extends AsyncTask{
+    private class initialTask extends AsyncTask {
         @Override
         protected void onPostExecute(Object o) {
             super.onPostExecute(o);
-            display();
+            //初始化ScrollingUpPanel
+            ChangeScrollingUpPanel(Data.getPosition());
+            main_song_title.setText(Data.getTitle(Data.getPosition()));
             sendPermissionGranted();
-            Log.v("发送初始广播","发送");
+            Log.v("发送初始广播", "发送");
         }
 
         @Override
@@ -827,7 +848,7 @@ public class MainActivity extends CActivity {
     }
 
 
-    private class screenAdaptionTask extends AsyncTask{
+    private class screenAdaptionTask extends AsyncTask {
         @Override
         protected Object doInBackground(Object[] objects) {
             return (int) (getResources().getDisplayMetrics().heightPixels * 0.6);
@@ -848,6 +869,7 @@ public class MainActivity extends CActivity {
         public void onServiceDisconnected(ComponentName name) {
 
         }
+
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             //返回一个MsgService对象
@@ -855,20 +877,23 @@ public class MainActivity extends CActivity {
         }
     };
 
-    private void updateSeekBar(){
+    private void updateSeekBar() {
         Timer mTimer = new Timer();
-        TimerTask task =new TimerTask() {
+        TimerTask task = new TimerTask() {
             @Override
             public void run() {
-                mediaPlayer = playService.getMediaPlayer();
-                if (mediaPlayer != null && Data.getState() == playing){
-                    seekBar.setProgress(playService.getMediaPlayer().getCurrentPosition());}
+                if (playService != null) {
+                    mediaPlayer = playService.getMediaPlayer();
+                    if (mediaPlayer != null && Data.getState() == playing) {
+                        seekBar.setProgress(playService.getMediaPlayer().getCurrentPosition());
+                    }
+                }
             }
         };
-        mTimer.schedule(task,500,1000);
+        mTimer.schedule(task, 500, 1000);
     }
 
-    private class setColorTask extends AsyncTask{
+    private class setColorTask extends AsyncTask {
         @Override
         protected Object doInBackground(Object[] objects) {
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
@@ -914,12 +939,65 @@ public class MainActivity extends CActivity {
         @Override
         protected void onPostExecute(Object o) {
             super.onPostExecute(o);
-            int color = getResources().getColor((int)o);
+            int color = getResources().getColor((int) o);
             View immersionView = findViewById(R.id.immersion_view);
             immersionView.setBackgroundColor(color);
             //沉浸状态栏
             ImmersionBar.with(MainActivity.this).barAlpha(0.3f).statusBarView(R.id.immersion_view).navigationBarColorInt(color).init();
+            prismPrimary.setColor(color);
             Data.setColorPrimarySetted((int) o);
+        }
+    }
+
+    private class setAccentColorTask extends AsyncTask {
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+            String accent_color = sharedPref.getString("accent_color", "");
+            switch (accent_color) {
+                case "red":
+                    return R.color.md_red_500;
+                case "pink":
+                    return R.color.md_pink_500;
+                case "purple":
+                    return R.color.md_purple_500;
+                case "deep_purple":
+                    return R.color.md_deep_purple_500;
+                case "indigo":
+                    return R.color.md_indigo_500;
+                case "blue":
+                    return R.color.md_blue_500;
+                case "light_blue":
+                    return R.color.md_light_blue_500;
+                case "cyan":
+                    return R.color.md_cyan_500;
+                case "teal":
+                    return R.color.md_teal_500;
+                case "green":
+                    return R.color.md_green_500;
+                case "light_green":
+                    return R.color.md_light_green_500;
+                case "lime":
+                    return R.color.md_lime_500;
+                case "yellow":
+                    return R.color.md_yellow_500;
+                case "amber":
+                    return R.color.md_amber_500;
+                case "orange":
+                    return R.color.md_orange_500;
+                case "deep_orange":
+                    return R.color.md_deep_orange_500;
+                default:
+            }
+            return R.color.md_teal_500;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            int color = getResources().getColor((int) o);
+            prismAccent.setColor(color);
+            Data.setColorAccentSetted((int) o);
         }
     }
 

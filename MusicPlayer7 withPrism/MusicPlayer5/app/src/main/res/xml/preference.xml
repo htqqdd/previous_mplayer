@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:colorpicker="http://schemas.android.com/tools">
-    <PreferenceCategory
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <com.example.lixiang.musicplayer.MyPreferenceCategory
         android:key="routine"
         android:persistent="true"
         android:title="常规">
@@ -22,8 +20,8 @@
             android:entryValues="@array/suggestion_entries_value"
             android:dialogTitle="建议歌曲数目"
             android:defaultValue="@string/suggestion_entries_default" />
-    </PreferenceCategory>
-    <PreferenceCategory
+    </com.example.lixiang.musicplayer.MyPreferenceCategory>
+    <com.example.lixiang.musicplayer.MyPreferenceCategory
         android:key="theme"
         android:persistent="true"
         android:title="主题">
@@ -43,22 +41,22 @@
             android:entryValues="@array/color_entries_value"
             android:dialogTitle="强调色"
             android:defaultValue="@string/color_entries_accent_default"/>
-    </PreferenceCategory>
-    <PreferenceCategory
+    </com.example.lixiang.musicplayer.MyPreferenceCategory>
+    <com.example.lixiang.musicplayer.MyPreferenceCategory
         android:key="sound"
         android:persistent="true"
         android:title="声音">
-        <SwitchPreference
+        <com.example.lixiang.musicplayer.MySwitchPreference
             android:key="lost_focus"
             android:summaryOn="有通知、导航等时降低音乐的音量"
             android:summaryOff="有通知、导航等时不降低音乐的音量"
             android:title="短暂丢失音频焦点时降低音量"/>
-        <SwitchPreference
+        <com.example.lixiang.musicplayer.MySwitchPreference
             android:key="headset_unplug"
             android:summaryOn="检测到耳机拔出时，暂停音乐的播放"
             android:summaryOff="检测到耳机拔出时，音乐继续播放"
             android:title="拔出耳机时暂停播放"/>
-    </PreferenceCategory>
+    </com.example.lixiang.musicplayer.MyPreferenceCategory>
 
 
 </PreferenceScreen>

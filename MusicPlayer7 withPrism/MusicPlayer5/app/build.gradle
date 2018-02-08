@@ -31,7 +31,6 @@ dependencies {
     compile 'com.android.support:palette-v7:25.3.1'
     compile 'com.github.bumptech.glide:glide:3.7.0'
     compile 'com.sothree.slidinguppanel:library:3.3.1'
-    compile 'com.github.garretyoder:Colorful:1.1'
     compile 'com.tapadoo.android:alerter:1.0.4'
     compile 'com.github.daniel-stoneuk:material-about-library:2.2.1'
     compile 'com.github.mancj:MaterialSearchBar:0.7.1'
@@ -44,5 +43,6 @@ dependencies {
         exclude module: "support-v13"
     }
     annotationProcessor "com.github.hotchemi:permissionsdispatcher-processor:2.4.0"
+    compile 'com.stylingandroid.prism:prism:1.0.1'
     testCompile 'junit:junit:4.12'
 }

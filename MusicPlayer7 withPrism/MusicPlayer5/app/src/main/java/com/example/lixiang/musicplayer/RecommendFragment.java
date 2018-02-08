@@ -59,15 +59,16 @@ public class RecommendFragment extends Fragment {
         intentFilter.addAction("permission_granted");
         getActivity().registerReceiver(permissionReceiver, intentFilter);
 
-        if(ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-            new initialTask().execute();
-        }else {
-        }
         return rootView;
 
+    }
 
-
-
+    @Override
+    public void onStart() {
+        super.onStart();
+        if(ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
+            new initialTask().execute();
+        }
     }
 
 
@@ -81,7 +82,10 @@ public class RecommendFragment extends Fragment {
         RecyclerView recent = (RecyclerView) rootView.findViewById(R.id.recent_recycler_view);
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        layoutManager.setSmoothScrollbarEnabled(true);
+        layoutManager.setAutoMeasureEnabled(true);
         recent.setLayoutManager(layoutManager);
+        recent.setHasFixedSize(true);
         recent.setItemAnimator(new DefaultItemAnimator());
         RecentListAdapter adapter = new RecentListAdapter();
         recent.setAdapter(adapter);
@@ -89,7 +93,10 @@ public class RecommendFragment extends Fragment {
     private void showFavouriteList(){
         RecyclerView favourite = (RecyclerView) rootView.findViewById(R.id.favourite_recycler_view);
         GridLayoutManager layoutManager = new GridLayoutManager(getActivity(),3);
+        layoutManager.setSmoothScrollbarEnabled(true);
+        layoutManager.setAutoMeasureEnabled(true);
         favourite.setLayoutManager(layoutManager);
+        favourite.setHasFixedSize(true);
         favourite.setItemAnimator(new DefaultItemAnimator());
         FavouriteListAdapter adapter = new FavouriteListAdapter();
         favourite.setAdapter(adapter);

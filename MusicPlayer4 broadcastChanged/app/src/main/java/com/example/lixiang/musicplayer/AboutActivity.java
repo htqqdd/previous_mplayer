@@ -17,6 +17,7 @@ import com.danielstone.materialaboutlibrary.model.MaterialAboutCard;
 import com.danielstone.materialaboutlibrary.model.MaterialAboutList;
 
 import org.polaric.colorful.CActivity;
+import org.polaric.colorful.Colorful;
 
 
 public class AboutActivity extends MyAboutActivity {
@@ -114,6 +115,7 @@ public class AboutActivity extends MyAboutActivity {
     }
     @Override
     protected CharSequence getActivityTitle() {
-        return getString(R.string.mal_title_about);
+//        return getString(R.string.mal_title_about);
+        return "关于";
     }
 }

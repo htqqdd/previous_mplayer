@@ -14,6 +14,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.OrientationHelper;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -101,19 +102,22 @@ public class RecommendFragment extends Fragment {
         recent.setAdapter(adapter);
     }
     private void showFavouriteList(){
-//        RecyclerView favourite = (RecyclerView) rootView.findViewById(R.id.favourite_recycler_view);
-//        GridLayoutManager layoutManager = new GridLayoutManager(getActivity(),1);
-//        favourite.setLayoutManager(layoutManager);
-//        favourite.setItemAnimator(new DefaultItemAnimator());
-//        FavouriteListAdapter adapter = new FavouriteListAdapter();
-//        favourite.setAdapter(adapter);
         RecyclerView favourite = (RecyclerView) rootView.findViewById(R.id.favourite_recycler_view);
-        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
-        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        GridLayoutManager layoutManager = new GridLayoutManager(getActivity(),3);
         favourite.setLayoutManager(layoutManager);
         favourite.setItemAnimator(new DefaultItemAnimator());
         FavouriteListAdapter adapter = new FavouriteListAdapter();
         favourite.setAdapter(adapter);
+        //与Scrollview滑动冲突
+        favourite.setNestedScrollingEnabled(false);
+        favourite.setHasFixedSize(true);
+//        RecyclerView favourite = (RecyclerView) rootView.findViewById(R.id.favourite_recycler_view);
+//        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+//        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+//        favourite.setLayoutManager(layoutManager);
+//        favourite.setItemAnimator(new DefaultItemAnimator());
+//        FavouriteListAdapter adapter = new FavouriteListAdapter();
+//        favourite.setAdapter(adapter);
     }
 
 }

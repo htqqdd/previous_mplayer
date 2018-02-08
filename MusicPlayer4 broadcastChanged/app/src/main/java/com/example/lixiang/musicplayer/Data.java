@@ -188,22 +188,22 @@ public class Data {
         infoInitialized = infoInitialized+1;
     }
     public  static void initialMusicDate(Context context){
-        int number = 20;
+        int number = 18;
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String suggestion = sharedPref.getString("suggestion", "");
         Log.v("猜你喜欢","数目"+suggestion);
         switch (suggestion) {
-            case "five":
-                number = 5;
+            case "three":
+                number = 3;
                 break;
-            case "ten":
-                number = 10;
+            case "six":
+                number = 6;
                 break;
-            case "fifteen":
-                number =15;
+            case "twelve":
+                number =12;
                 break;
-            case "twenty":
-                number =20;
+            case "eighteen":
+                number =18;
                 break;
             default:
         }
@@ -238,22 +238,22 @@ public class Data {
         infoInitialized = infoInitialized+1;
     }
     public static void initialMusicPlaytimes(Service context){
-        int number = 20;
+        int number = 18;
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String suggestion = sharedPref.getString("suggestion", "");
         Log.v("近期活动","数目"+suggestion);
         switch (suggestion) {
-            case "five":
-                number = 5;
+            case "three":
+                number = 3;
                 break;
-            case "ten":
-                number = 10;
+            case "six":
+                number = 6;
                 break;
-            case "fifteen":
-                number =15;
+            case "twelve":
+                number =12;
                 break;
-            case "twenty":
-                number =20;
+            case "eighteen":
+                number =18;
                 break;
             default:
         }
@@ -282,22 +282,22 @@ public class Data {
         Timessublist = playtimesArrayList.subList(0,number);
     }
     public static void initialMusicPlaytimes(Activity context){
-        int number = 20;
+        int number = 18;
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String suggestion = sharedPref.getString("suggestion", "");
         Log.v("近期活动","数目"+suggestion);
         switch (suggestion) {
-            case "five":
-                number = 5;
+            case "three":
+                number = 3;
                 break;
-            case "ten":
-                number = 10;
+            case "six":
+                number = 6;
                 break;
-            case "fifteen":
-                number =15;
+            case "twelve":
+                number =12;
                 break;
-            case "twenty":
-                number =20;
+            case "eighteen":
+                number =18;
                 break;
             default:
         }

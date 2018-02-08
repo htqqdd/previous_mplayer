@@ -25,18 +25,18 @@
     <string name="start_page_entries_default">suggestion</string>
 
     <string-array name="suggestion_entries">
-        <item>显示5首</item>
-        <item>显示10首</item>
-        <item>显示15首</item>
-        <item>显示20首</item>
+        <item>显示3首</item>
+        <item>显示6首</item>
+        <item>显示12首</item>
+        <item>显示18首</item>
     </string-array>
     <string-array name="suggestion_entries_value">
-        <item>five</item>
-        <item>ten</item>
-        <item>fifteen</item>
-        <item>twenty</item>
+        <item>three</item>
+        <item>six</item>
+        <item>twelve</item>
+        <item>eighteen</item>
     </string-array>
-    <string name="suggestion_entries_default">twenty</string>
+    <string name="suggestion_entries_default">eighteen</string>
 
     <string-array name="color_entries">
         <item>红色</item>

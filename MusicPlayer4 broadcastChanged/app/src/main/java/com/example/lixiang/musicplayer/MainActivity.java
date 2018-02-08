@@ -54,6 +54,7 @@ import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.gyf.barlibrary.ImmersionBar;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.tapadoo.alerter.Alerter;
 
@@ -64,7 +65,9 @@ import org.polaric.colorful.Colorful;
 import java.util.Arrays;
 import java.util.Calendar;
 
+import static android.R.attr.tag;
 import static android.R.attr.width;
+import static android.view.View.GONE;
 import static com.example.lixiang.musicplayer.Data.deleteAction;
 import static com.example.lixiang.musicplayer.Data.findPositionById;
 import static com.example.lixiang.musicplayer.Data.initialize;
@@ -78,6 +81,7 @@ import static com.example.lixiang.musicplayer.Data.previousAction;
 import static com.example.lixiang.musicplayer.Data.seektoAction;
 import static com.example.lixiang.musicplayer.Data.serviceStarted;
 import static com.example.lixiang.musicplayer.Data.shuffleChangeAction;
+import static com.example.lixiang.musicplayer.R.id.control_layout;
 import static com.example.lixiang.musicplayer.R.id.drawer_layout;
 import static com.example.lixiang.musicplayer.R.id.main_toolbar;
 import static com.example.lixiang.musicplayer.R.id.play_pause_button;
@@ -105,6 +109,11 @@ public class MainActivity extends CActivity {
     private ImageView repeat_button;
     private NavigationView navigationView;
     private DrawerLayout drawerLayout;
+    private CardView main_control_ui;
+    private boolean isfromSc = false;
+    private int screenWidth;
+    private int screenHeight;
+    private int flag = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,6 +121,11 @@ public class MainActivity extends CActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
+//沉浸状态栏
+        ImmersionBar.with(this).barAlpha(0.3f).init();
 
         viewPager = (ViewPager) findViewById(R.id.viewpager);
         SimpleFragmentPagerAdapter adapter = new SimpleFragmentPagerAdapter(getSupportFragmentManager());
@@ -163,6 +177,19 @@ public class MainActivity extends CActivity {
             @Override
             public void onDrawerClosed(View drawerView) {
                 super.onDrawerClosed(drawerView);
+                switch (flag){
+                    case 0:
+                        break;
+                    case R.id.nav_settings:
+                        Intent settings_intent = new Intent(MainActivity.this, SettingsActivity.class);
+                        startActivity(settings_intent);
+                        break;
+                    case R.id.nav_about:
+                        Intent activity_intent = new Intent(MainActivity.this, AboutActivity.class);
+                        startActivity(activity_intent);
+                        break;
+                    default:
+                }
 //                mAnimationDrawable.start();
             }
         };
@@ -182,12 +209,13 @@ public class MainActivity extends CActivity {
                 } else if (id == R.id.download_view) {
                     viewPager.setCurrentItem(2);
                 } else if (id == R.id.nav_settings) {
-                    Intent settings_intent = new Intent(MainActivity.this, SettingsActivity.class);
-                    startActivity(settings_intent);
-//                    Toast.makeText(MainActivity.this, "settings", Toast.LENGTH_SHORT).show();
+                    flag = id;
+//                    Intent settings_intent = new Intent(MainActivity.this, SettingsActivity.class);
+//                    startActivity(settings_intent);
                 } else if (id == R.id.nav_about) {
-                    Intent activity_intent = new Intent(MainActivity.this, AboutActivity.class);
-                    startActivity(activity_intent);
+                    flag = id;
+//                    Intent activity_intent = new Intent(MainActivity.this, AboutActivity.class);
+//                    startActivity(activity_intent);
                 }
                 drawerLayout.closeDrawer(GravityCompat.START);
                 return true;
@@ -196,10 +224,10 @@ public class MainActivity extends CActivity {
 
 
         //此FLAG可使状态栏透明，且当前视图在绘制时，从屏幕顶端开始即top = 0开始绘制，这也是实现沉浸效果的基础
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);//可不加
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+//            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+//            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);//可不加
+//        }
 
     }
 
@@ -300,10 +328,11 @@ public class MainActivity extends CActivity {
 
         //上滑面板
         SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        mLayout.setOverlayed(true);
         mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
             @Override
             public void onPanelSlide(View panel, float slideOffset) {
-                CardView main_control_ui = (CardView) findViewById(R.id.main_control_ui);
+                main_control_ui = (CardView) findViewById(R.id.main_control_ui);
                 AlphaAnimation alphaAnimation = new AlphaAnimation(slideOffset, 1 - slideOffset);
                 main_control_ui.startAnimation(alphaAnimation);
                 alphaAnimation.setFillAfter(true);//动画结束后保持状态
@@ -349,22 +378,24 @@ public class MainActivity extends CActivity {
             }
         });
 
-        //起始页
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String start_page = sharedPref.getString("start_page", "");
+        //设置起始页
+        if (isfromSc == false) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+            String start_page = sharedPref.getString("start_page", "");
 
-        Log.v("初始页", "初始页" + start_page);
-        switch (start_page) {
-            case "suggestion":
-                viewPager.setCurrentItem(0);
-                break;
-            case "list":
-                viewPager.setCurrentItem(1);
-                break;
-            case "cloud":
-                viewPager.setCurrentItem(2);
-                break;
-            default:
+            Log.v("初始页", "初始页" + start_page);
+            switch (start_page) {
+                case "suggestion":
+                    viewPager.setCurrentItem(0);
+                    break;
+                case "list":
+                    viewPager.setCurrentItem(1);
+                    break;
+                case "cloud":
+                    viewPager.setCurrentItem(2);
+                    break;
+                default:
+            }
         }
         ImageView back = (ImageView) findViewById(R.id.back);
         back.setOnClickListener(new View.OnClickListener() {
@@ -424,6 +455,8 @@ public class MainActivity extends CActivity {
                 equalizer.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem menuItem) {
+                        Intent intent = new Intent(MainActivity.this,searchActivity.class);
+                        startActivity(intent);
                         Toast.makeText(MainActivity.this, "Equalizer", Toast.LENGTH_SHORT).show();
                         return false;
                     }
@@ -460,7 +493,7 @@ public class MainActivity extends CActivity {
     public void display() {
 
         //初始化ScrollingUpPanel
-        ChangeScrollingUpPanel(0);
+        ChangeScrollingUpPanel(Data.getPosition());
         main_song_title = (TextView) findViewById(R.id.main_song_title);
         main_song_title.setText(Data.getTitle(Data.getPosition()));
 
@@ -722,6 +755,12 @@ public class MainActivity extends CActivity {
             }
         };
         handler.postDelayed(runnable, 500);
+
+        //多屏幕尺寸适应
+        getScreenDimension();
+        RelativeLayout.LayoutParams lp_play_now_cover=(RelativeLayout.LayoutParams)play_now_cover.getLayoutParams();
+        lp_play_now_cover.height= (int)(screenHeight*0.6);
+        play_now_cover.setLayoutParams(lp_play_now_cover);
     }
 
     private class MsgReceiver extends BroadcastReceiver {
@@ -747,6 +786,7 @@ public class MainActivity extends CActivity {
                 finish();
             }
             if (intent.getIntExtra("viewPagerChange", -1) != -1) {
+                isfromSc = true;
                 viewPager.setCurrentItem(intent.getIntExtra("viewPagerChange", -1));
             }
         }
@@ -767,28 +807,12 @@ public class MainActivity extends CActivity {
         }
     }
 
-    private int getScreenHeight() {
-        WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-        DisplayMetrics dm = new DisplayMetrics();
-        wm.getDefaultDisplay().getMetrics(dm);
-        int height = dm.heightPixels;       // 屏幕高度（像素）
-        float density = dm.density;         // 屏幕密度（0.75 / 1.0 / 1.5）
-        // 算法:屏幕宽度（像素）/屏幕密度
-        int screenHeight = (int) (height / density);// 屏幕高度(dp)
-        return screenHeight;
-
+    private void getScreenDimension(){
+        DisplayMetrics dm =getResources().getDisplayMetrics();
+        screenWidth = dm.widthPixels;
+        screenHeight = dm.heightPixels;
+        Log.v("屏幕尺寸","屏幕尺寸：宽度dp = " + screenWidth + "高度dp = " + screenHeight + "密度 = " + dm.densityDpi);
     }
 
-    private int getScreenWidth() {
-        WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-        DisplayMetrics dm = new DisplayMetrics();
-        wm.getDefaultDisplay().getMetrics(dm);
-        int width = dm.widthPixels;         // 屏幕宽度（像素）
-        float density = dm.density;         // 屏幕密度（0.75 / 1.0 / 1.5）
-        // 屏幕宽度算法:屏幕宽度（像素）/屏幕密度
-        int screenWidth = (int) (width / density);  // 屏幕宽度(dp)
-        return screenWidth;
-
-    }
 
 }

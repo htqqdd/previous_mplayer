@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
@@ -239,6 +240,7 @@ public class MusiclistFragment extends Fragment {
                 getActivity().startService(intent);
             }
         });
+
 
         //随机播放点击栏
         random_play_title = (RelativeLayout) rootView.findViewById(R.id.random_play_title);

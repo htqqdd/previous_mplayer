@@ -30,7 +30,12 @@
             android:enabled="true"
             android:exported="true" />
 
-        <activity android:name=".PlayNow"></activity>
+        <activity android:name=".PlayNow" />
+
+        <service
+            android:name=".PlayerService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

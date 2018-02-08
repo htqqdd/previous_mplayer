@@ -3,30 +3,23 @@ package com.example.lixiang.musicplayer;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.TimePickerDialog;
-import android.app.usage.UsageEvents;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.pm.ShortcutInfo;
-import android.content.pm.ShortcutManager;
 import android.graphics.Bitmap;
-import android.graphics.drawable.Icon;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -38,8 +31,8 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
@@ -47,11 +40,9 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
-import android.view.ViewGroup;
-import android.view.WindowManager;
+import android.view.ViewStub;
 import android.view.animation.AlphaAnimation;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
@@ -60,55 +51,34 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
-
 import com.bumptech.glide.Glide;
 import com.gyf.barlibrary.ImmersionBar;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.tapadoo.alerter.Alerter;
-
 import org.polaric.colorful.CActivity;
-import org.polaric.colorful.ColorPickerDialog;
-import org.polaric.colorful.Colorful;
-
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static android.R.attr.bitmap;
-import static android.R.attr.logo;
-import static android.R.attr.tag;
-import static android.R.attr.width;
+import permissions.dispatcher.NeedsPermission;
+import permissions.dispatcher.OnPermissionDenied;
+import permissions.dispatcher.OnShowRationale;
+import permissions.dispatcher.PermissionRequest;
+import permissions.dispatcher.RuntimePermissions;
+
 import static android.view.View.GONE;
-import static com.example.lixiang.musicplayer.Data.Recent_position;
-import static com.example.lixiang.musicplayer.Data.deleteAction;
-import static com.example.lixiang.musicplayer.Data.findPositionById;
 import static com.example.lixiang.musicplayer.Data.initialize;
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
-import static com.example.lixiang.musicplayer.Data.nextAction;
 import static com.example.lixiang.musicplayer.Data.pauseAction;
 import static com.example.lixiang.musicplayer.Data.pausing;
 import static com.example.lixiang.musicplayer.Data.playAction;
 import static com.example.lixiang.musicplayer.Data.playing;
-import static com.example.lixiang.musicplayer.Data.previousAction;
-import static com.example.lixiang.musicplayer.Data.seektoAction;
-import static com.example.lixiang.musicplayer.Data.serviceStarted;
-import static com.example.lixiang.musicplayer.Data.shuffleChangeAction;
-import static com.example.lixiang.musicplayer.R.id.control_layout;
-import static com.example.lixiang.musicplayer.R.id.drawer_layout;
-import static com.example.lixiang.musicplayer.R.id.main_toolbar;
-import static com.example.lixiang.musicplayer.R.id.play_now_back_color;
-import static com.example.lixiang.musicplayer.R.id.play_now_cover;
-import static com.example.lixiang.musicplayer.R.id.play_pause_button;
-import static com.example.lixiang.musicplayer.R.id.random_play_button;
-import static com.example.lixiang.musicplayer.R.id.random_play_text;
-import static com.example.lixiang.musicplayer.R.id.start;
 import static com.example.lixiang.musicplayer.getCover.getArtwork;
 import static com.sothree.slidinguppanel.SlidingUpPanelLayout.PanelState.COLLAPSED;
 import static com.sothree.slidinguppanel.SlidingUpPanelLayout.PanelState.DRAGGING;
 import static com.sothree.slidinguppanel.SlidingUpPanelLayout.PanelState.EXPANDED;
-import static java.security.AccessController.getContext;
 
+@RuntimePermissions
 public class MainActivity extends CActivity {
     private TextView main_song_title;
     private static SeekBar seekBar;;
@@ -126,7 +96,6 @@ public class MainActivity extends CActivity {
     private DrawerLayout drawerLayout;
     private CardView main_control_ui;
     private boolean isfromSc = false;
-    private int screenHeight;
     private int flag = 0;
     private int cx = 0;
     private int cy = 0;
@@ -141,13 +110,12 @@ public class MainActivity extends CActivity {
     private TextView play_now_song;
     private TextView play_now_singer;
     private PlayService playService;
-    public static Handler handler;
     private MediaPlayer mediaPlayer;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.v("OnCreate执行", "OnCreate");
+        Log.e("OnCreate执行", "OnCreate");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -170,12 +138,9 @@ public class MainActivity extends CActivity {
         navigationView = (NavigationView) findViewById(R.id.nav_view);
 
 
-
         //多屏幕尺寸适应
         new screenAdaptionTask().execute();
 
-       //沉浸状态栏
-        ImmersionBar.with(this).barAlpha(0.3f).statusBarView(R.id.immersion_view).init();
 
         viewPager = (ViewPager) findViewById(R.id.viewpager);
         SimpleFragmentPagerAdapter adapter = new SimpleFragmentPagerAdapter(getSupportFragmentManager());
@@ -270,12 +235,6 @@ public class MainActivity extends CActivity {
             }
         });
 
-        //申请动态权限
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-        } else {
-            new initialTask().execute();
-        }
 
         //动态注册广播
         msgReceiver = new MsgReceiver();
@@ -285,7 +244,6 @@ public class MainActivity extends CActivity {
 
         //上滑面板
         SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-        mLayout.setOverlayed(true);
         mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
             @Override
             public void onPanelSlide(View panel, float slideOffset) {
@@ -372,8 +330,15 @@ public class MainActivity extends CActivity {
         });
 
         new setColorTask().execute();
-//        SharedPreferences pref = getSharedPreferences("last_music",MODE_PRIVATE);
-//        Data.setPosition(pref.getInt("Id",0));
+
+        if (Data.getState() == playing) {
+            FloatingActionButton random_play = (FloatingActionButton) findViewById(R.id.random_play);
+            random_play.setVisibility(GONE);
+            mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+            mLayout.setPanelHeight((int) (60 * getResources().getDisplayMetrics().density + 0.5f));
+        }
+
+        MainActivityPermissionsDispatcher.needsPermissionWithCheck(this);
     }
 
     @Override
@@ -424,22 +389,10 @@ public class MainActivity extends CActivity {
         return true;
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_DENIED) {
-            Toast.makeText(this, "您拒绝了该权限，程序将无法使用哦", Toast.LENGTH_SHORT).show();
-            finish();
-        } else if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            new initialTask().execute();
-        }
-
-
-    }
 
     @Override
     protected void onStart() {
-        Log.v("OnStart执行", "OnStart");
+        Log.e("OnStart执行", "OnStart");
         super.onStart();
 
         ensureServiceStarted();
@@ -449,13 +402,12 @@ public class MainActivity extends CActivity {
         bindService(bindIntent, conn, BIND_AUTO_CREATE);
 
         //拖动seekbar
-
         seekBar.setPadding(0,0,0,0);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    playService.seekto(progress*1000);
+                    playService.seekto(progress);
                 }
             }
 
@@ -491,6 +443,19 @@ public class MainActivity extends CActivity {
             }
         }
 
+        final FloatingActionButton random_play = (FloatingActionButton) findViewById(R.id.random_play);
+        random_play.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Data.setPlayMode(1);
+                Data.setRecent(false);
+                Data.setFavourite(false);
+                Intent intent = new Intent("service_broadcast");
+                intent.putExtra("ACTION", playAction);
+                sendBroadcast(intent);
+            }
+        });
+
     }
 
     @Override
@@ -512,9 +477,6 @@ public class MainActivity extends CActivity {
         Log.v("OnDestory执行", "OnDestory");
         if (Data.getState() == pausing) {
             stopService(new Intent(this, PlayService.class));
-//            SharedPreferences.Editor editor = getSharedPreferences("last_music",MODE_PRIVATE).edit();
-//            editor.putInt("Id",Data.getPosition());
-//            editor.apply();
         }
         super.onDestroy();
     }
@@ -540,43 +502,22 @@ public class MainActivity extends CActivity {
     }
 
     public void change_play_or_pause_state() {
-//        ensureServiceStarted();
         if (Data.getState() == playing) {
             //发送暂停广播
             playService.pause();
-//            Intent intent = new Intent("service_broadcast");
-//            intent.putExtra("Control", pauseAction);
-//            sendBroadcast(intent);
             Floatingbar.setImageResource(R.drawable.play_black);
         } else if (Data.getState() == pausing) {
             playService.resume();
-
-            //发送恢复广播
-//            Intent intent = new Intent("service_broadcast");
-//            intent.putExtra("Control", playAction);
-//            sendBroadcast(intent);
             Floatingbar.setImageResource(R.drawable.pause_black);
         }
     }
 
     public void previous(View v) {
-//        ensureServiceStarted();
         playService.previous();
-
-        //发送上一首广播
-//        Intent intent = new Intent("service_broadcast");
-//        intent.putExtra("Control", previousAction);
-//        sendBroadcast(intent);
     }
 
     public void next(View v) {
-//        ensureServiceStarted();
         playService.next();
-
-        //发送下一首广播
-//        Intent intent = new Intent("service_broadcast");
-//        intent.putExtra("Control", nextAction);
-//        sendBroadcast(intent);
     }
 
     public void changeRepeat(View v) {
@@ -665,7 +606,7 @@ public class MainActivity extends CActivity {
         if (cx != 0) {
             Animator anim = ViewAnimationUtils.createCircularReveal(play_now_back_color, cx, cy, 0, finalRadius);
             play_now_back_color.setBackgroundColor(Int);
-            anim.setDuration(600);
+            anim.setDuration(800);
             anim.start();
             anim.addListener(new AnimatorListenerAdapter() {
                 @Override
@@ -685,7 +626,7 @@ public class MainActivity extends CActivity {
         artist = Data.getArtist(position);
         id = Data.getId(position);
         seekBar.setProgress(0);
-        seekBar.setMax(Data.get_mediaDuration(position)/1000);
+        seekBar.setMax(Data.get_mediaDuration(position));
 //设置播放模式按钮
         //playMode 0:列表重复 1:随机 2:单曲重复 3:顺序
         if (Data.getPlayMode() == 0) {
@@ -728,11 +669,70 @@ public class MainActivity extends CActivity {
 
     }
 
+    @NeedsPermission({Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void needsPermission() {
+        new initialTask().execute();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        MainActivityPermissionsDispatcher.onRequestPermissionsResult(this, requestCode, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @OnShowRationale({Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void showRationale(final PermissionRequest request) {
+        new AlertDialog.Builder(this)
+                .setTitle("这些权限是必要的")
+                .setMessage("读取媒体、照片、文件权限用于获取歌曲信息并播放。\n电话权限用于通话时暂停音乐的播放，通话结束时恢复播放。")
+                .setPositiveButton("重新授权", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        request.proceed();
+                    }
+                })
+                .setNegativeButton("仍不允许", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        request.cancel();
+                    }
+                })
+                .show();
+    }
+
+    @OnPermissionDenied({Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE})
+    void permissionDenied() {
+        new AlertDialog.Builder(this)
+                .setTitle("这些权限是必要的")
+                .setMessage("读取媒体、照片、文件权限用于获取歌曲信息并播放。\n电话权限用于通话时暂停音乐的播放，通话结束时恢复播放。")
+                .setPositiveButton("重新授权", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        MainActivityPermissionsDispatcher.needsPermissionWithCheck(MainActivity.this);
+                    }
+                })
+                .setNegativeButton("仍不允许", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                })
+                .show();
+
+    }
+
     private class MsgReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
             //更新UI
+            if (intent.getIntExtra("UIChange", 0) == initialize) {
+                FloatingActionButton random_play = (FloatingActionButton) findViewById(R.id.random_play);
+                random_play.setVisibility(GONE);
+                SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+                mLayout.setPanelHeight((int) (60*getResources().getDisplayMetrics().density+0.5f));
+            }
+
             if (intent.getIntExtra("UIChange", 0) == pauseAction) {
                 play_pause_button.setImageResource(R.drawable.play_black);
                 floatingActionButton.setImageResource(R.drawable.play_black);
@@ -762,19 +762,13 @@ public class MainActivity extends CActivity {
 
     private void ensureServiceStarted() {
         if (Data.getServiceState() == false) {
-            Intent intent = new Intent();
+            Intent intent = new Intent(this, PlayService.class);
             intent.putExtra("ACTION", initialize);
-            Data.setPosition(0);
-            intent.setClass(this, PlayService.class);
             startService(intent);
 
         }
     }
 
-    private void getScreenDimension() {
-        DisplayMetrics dm = getResources().getDisplayMetrics();
-        screenHeight = dm.heightPixels;
-    }
 
     private class setBackColorTask extends AsyncTask {
         @Override
@@ -836,8 +830,7 @@ public class MainActivity extends CActivity {
     private class screenAdaptionTask extends AsyncTask{
         @Override
         protected Object doInBackground(Object[] objects) {
-            getScreenDimension();
-            return (int) (screenHeight * 0.6);
+            return (int) (getResources().getDisplayMetrics().heightPixels * 0.6);
         }
 
         @Override
@@ -868,8 +861,8 @@ public class MainActivity extends CActivity {
             @Override
             public void run() {
                 mediaPlayer = playService.getMediaPlayer();
-                if (mediaPlayer != null && mediaPlayer.isPlaying()){
-                    seekBar.setProgress(playService.getMediaPlayer().getCurrentPosition()/1000);}
+                if (mediaPlayer != null && Data.getState() == playing){
+                    seekBar.setProgress(playService.getMediaPlayer().getCurrentPosition());}
             }
         };
         mTimer.schedule(task,500,1000);
@@ -924,6 +917,8 @@ public class MainActivity extends CActivity {
             int color = getResources().getColor((int)o);
             View immersionView = findViewById(R.id.immersion_view);
             immersionView.setBackgroundColor(color);
+            //沉浸状态栏
+            ImmersionBar.with(MainActivity.this).barAlpha(0.3f).statusBarView(R.id.immersion_view).navigationBarColorInt(color).init();
             Data.setColorPrimarySetted((int) o);
         }
     }

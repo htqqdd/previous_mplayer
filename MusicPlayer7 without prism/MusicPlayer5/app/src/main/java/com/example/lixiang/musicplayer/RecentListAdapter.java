@@ -4,9 +4,12 @@ import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +18,9 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
+import java.util.Date;
+
+import static com.example.lixiang.musicplayer.Data.infoInitialized;
 import static com.example.lixiang.musicplayer.Data.playAction;
 
 
@@ -23,7 +29,9 @@ import static com.example.lixiang.musicplayer.Data.playAction;
  */
 
 public class RecentListAdapter extends RecyclerView.Adapter<RecentListAdapter.ViewHolder> {
-private Context mContext;
+    private Context mContext;
+
+
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         mContext = parent.getContext();
@@ -55,7 +63,7 @@ private Context mContext;
                 Data.setRecent(true);
                 Data.setFavourite(false);
                 Data.setPosition(Data.getDateSublist().get(Position).getPosition());
-                Data.setRecent_position (Position);//获取Recent列表位置
+                Data.setRecent_position(Position);//获取Recent列表位置
                 Intent intent = new Intent("service_broadcast");
                 intent.putExtra("ACTION", playAction);
                 mContext.sendBroadcast(intent);

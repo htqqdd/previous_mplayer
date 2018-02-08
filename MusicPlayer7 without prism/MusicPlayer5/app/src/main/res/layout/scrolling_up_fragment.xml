@@ -67,8 +67,8 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="65dp"
-        android:background="@drawable/toolbar_back"
         android:fitsSystemWindows="true"
+        android:background="@drawable/toolbar_back"
         app:popupTheme="@style/Theme.AppCompat.Light"
         app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
         <RelativeLayout
@@ -77,18 +77,16 @@
         <ImageView
             android:id="@+id/back"
             android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_height="wrap_content"
             android:src="@mipmap/ic_back"
-            android:layout_marginTop="32dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"/>
         <ImageView
             android:id="@+id/about"
             android:layout_width="26dp"
-            android:layout_height="26dp"
+            android:layout_height="wrap_content"
             android:src="@mipmap/ic_about"
-            android:layout_marginTop="32dp"
             android:layout_alignParentRight="true"
-            android:layout_marginRight="12dp"
+            android:layout_marginRight="16dp"
             android:background="?android:attr/selectableItemBackgroundBorderless"/>
         </RelativeLayout>
     </android.support.v7.widget.Toolbar>

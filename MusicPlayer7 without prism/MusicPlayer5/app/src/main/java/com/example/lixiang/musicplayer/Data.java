@@ -156,43 +156,43 @@ public class Data {
 
     public static void initialMusicInfo(Context context){
         Log.v("Context","Context是"+context);
+        if (infoInitialized == 0) {
 
             //初始化音乐信息
             media_music_info = new String[]{
                     MediaStore.Audio.Media.TITLE,
                     MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.ARTIST,
-                    MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME,
-                    MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.ALBUM_ID, MediaStore.Audio.Media.ALBUM};
+                    MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.ALBUM_ID, MediaStore.Audio.Media.ALBUM};
 
             cursor = context.getContentResolver().query(
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, media_music_info,
                     null, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
+            int total = cursor.getCount();
             cursor.moveToFirst();// 将游标移动到初始位置
-            _ids = new int[cursor.getCount()];// 返回int的一个列
-            _artists = new String[cursor.getCount()];// 返回String的一个列
-            _titles = new String[cursor.getCount()];// 返回String的一个列
-            _data = new String[cursor.getCount()];
-            _albumids = new int[cursor.getCount()];
-            _album = new String[cursor.getCount()];
-            _duration = new int[cursor.getCount()];
-            Log.v("total", "总数" + cursor.getCount());
-            for (int i = 0; i < cursor.getCount(); i++) {
+            _ids = new int[total];// 返回int的一个列
+            _artists = new String[total];// 返回String的一个列
+            _titles = new String[total];// 返回String的一个列
+            _data = new String[total];
+            _albumids = new int[total];
+            _album = new String[total];
+            _duration = new int[total];
+            for (int i = 0; i < total; i++) {
                 _ids[i] = cursor.getInt(3);
                 _titles[i] = cursor.getString(0);
                 _artists[i] = cursor.getString(2);
-                _data[i] = cursor.getString(5);
-                _albumids[i] = cursor.getInt(6);
-                _album[i] = cursor.getString(7);
+                _data[i] = cursor.getString(4);
+                _albumids[i] = cursor.getInt(5);
+                _album[i] = cursor.getString(6);
                 _duration[i] = cursor.getInt(1);
                 cursor.moveToNext();// 将游标移到下一行
             }
+        }
         infoInitialized = infoInitialized+1;
     }
     public  static void initialMusicDate(Context context){
         int number = 18;
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String suggestion = sharedPref.getString("suggestion", "");
-        Log.v("猜你喜欢","数目"+suggestion);
         switch (suggestion) {
             case "three":
                 number = 3;
@@ -208,7 +208,6 @@ public class Data {
                 break;
             default:
         }
-        Log.v("猜你喜欢","数目"+number);
         ArrayList<music_date> music_dates = new ArrayList<music_date>();
         _date = new Date[cursor.getCount()];
 
@@ -242,7 +241,6 @@ public class Data {
         int number = 18;
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String suggestion = sharedPref.getString("suggestion", "");
-        Log.v("近期活动","数目"+suggestion);
         switch (suggestion) {
             case "three":
                 number = 3;
@@ -258,7 +256,6 @@ public class Data {
                 break;
             default:
         }
-        Log.v("近期活动","数目"+number);
         playtimes = context.getSharedPreferences("playtimes",Context.MODE_PRIVATE);
         playtimesArrayList = new ArrayList<music_playtimes>();
         for (int j=0;j< cursor.getCount();j++){
@@ -286,7 +283,6 @@ public class Data {
         int number = 18;
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
         String suggestion = sharedPref.getString("suggestion", "");
-        Log.v("近期活动","数目"+suggestion);
         switch (suggestion) {
             case "three":
                 number = 3;
@@ -302,7 +298,6 @@ public class Data {
                 break;
             default:
         }
-        Log.v("近期活动","数目"+number);
         playtimes = context.getSharedPreferences("playtimes",Context.MODE_PRIVATE);
         playtimesArrayList = new ArrayList<music_playtimes>();
         for (int j=0;j< cursor.getCount();j++){

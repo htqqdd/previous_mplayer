@@ -80,7 +80,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     private boolean ongoingCall = false;
     private PhoneStateListener phoneStateListener;
     private TelephonyManager telephonyManager;
-    private int pauseTime = 0;
     private Notification notification;
     private Timer timer;
     private TimerTask task;
@@ -96,8 +95,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     }
 
 
-    public class musicBinder extends Binder{
-        public PlayService getService(){
+    public class musicBinder extends Binder {
+        public PlayService getService() {
             return PlayService.this;
         }
     }
@@ -214,7 +213,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         }
     }
 
-    public MediaPlayer getMediaPlayer(){
+    public MediaPlayer getMediaPlayer() {
         return mediaPlayer;
     }
 
@@ -224,13 +223,17 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         if (mediaPlayer == null) mediaPlayer = new MediaPlayer();
         mediaPlayer.reset();
         path = Data.getData(position);
+        if (onetime) {
+            Intent intent = new Intent("play_broadcast");
+            intent.putExtra("UIChange", initialize);
+            sendBroadcast(intent);
+        }
         Intent intent = new Intent("play_broadcast");
         intent.putExtra("UIChange", mediaChangeAction);
         sendBroadcast(intent);
         Data.setState(playing);
         new buildNotificationTask().execute(playing);
         Data.setPosition(position);
-
         try {
             mediaPlayer.setDataSource(path);
             mediaPlayer.prepare(); // 进行缓冲
@@ -244,8 +247,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 
     }
 
-    public void seekto(int currentPosition){
-        if (mediaPlayer != null){
+    public void seekto(int currentPosition) {
+        if (mediaPlayer != null) {
             mediaPlayer.seekTo(currentPosition);
         }
     }
@@ -289,59 +292,50 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         }
     }
 
-    public void deleteService (int time){
-            if (time != 0) {
-                AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
-                // 设置定时
-                int duration = time * 60 * 1000;
-                long setTime = duration + SystemClock.elapsedRealtime();
-                //设置定时任务
-                manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, setTime, pendingIntent(deleteAction));
-            } else {
-                pause();
-                removeNotification();
-            }
+    public void deleteService(int time) {
+        if (time != 0) {
+            AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
+            // 设置定时
+            int duration = time * 60 * 1000;
+            long setTime = duration + SystemClock.elapsedRealtime();
+            //设置定时任务
+            manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, setTime, pendingIntent(deleteAction));
+        } else {
+            pause();
+            removeNotification();
+        }
     }
 
     public void previous() {
         new previousTask().execute();
     }
 
-    public void next(){
+    public void next() {
         new nextTask().execute();
     }
 
     public void pause() {
-        pauseTime = mediaPlayer.getCurrentPosition();
         mediaPlayer.pause();
         Intent intent = new Intent("play_broadcast");
         intent.putExtra("UIChange", pauseAction);
         sendBroadcast(intent);
-        if (Data.getState() ==playing){
-        new buildNotificationTask().execute(pausing);}
+        if (Data.getState() == playing) {
+            new buildNotificationTask().execute(pausing);
+        }
         Data.setState(pausing);
     }
 
     public void resume() {
-
-        if (onetime && Data.getPosition() == 0) {
+        if (mediaPlayer != null) {
+            mediaPlayer.start();
+        } else if (mediaPlayer == null) {
             play(Data.getPosition());
-            onetime = false;
-        } else {
-            if (mediaPlayer != null) {
-                mediaPlayer.start();
-            } else if (mediaPlayer == null) {
-                requestAudioFocus();
-                mediaPlayer = new MediaPlayer();
-                play(Data.getPosition());
-                mediaPlayer.seekTo(pauseTime);
-            }
-            Intent intent = new Intent("play_broadcast");
-            intent.putExtra("UIChange", playAction);
-            Data.setState(playing);
-            sendBroadcast(intent);
-            new buildNotificationTask().execute(playing);
         }
+        Intent intent = new Intent("play_broadcast");
+        intent.putExtra("UIChange", playAction);
+        Data.setState(playing);
+        sendBroadcast(intent);
+        new buildNotificationTask().execute(playing);
     }
 
     @Override
@@ -366,35 +360,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         notificationManager.cancel(NOTIFICATION_ID);
     }
 
-//    private int getColor(Bitmap largeIcon) {
-//        Palette p = Palette.from(largeIcon).generate();
-//        Palette.Swatch s1 = p.getVibrantSwatch();
-//        Palette.Swatch s2 = p.getDarkVibrantSwatch();
-//        Palette.Swatch s3 = p.getLightVibrantSwatch();
-//        Palette.Swatch s4 = p.getMutedSwatch();
-//        Palette.Swatch s5 = p.getLightVibrantSwatch();
-//        Palette.Swatch s6 = p.getDarkVibrantSwatch();
-//        Palette.Swatch s7 = p.getDominantSwatch();
-//        int color = 0;
-//        if (s1 != null) {
-//            color = s1.getRgb();
-//        } else if (s4 != null) {
-//            color = s4.getRgb();
-//        } else if (s2 != null) {
-//            color = s2.getRgb();
-//        } else if (s3 != null) {
-//            color = s3.getRgb();
-//        } else if (s5 != null) {
-//            color = s5.getRgb();
-//        } else if (s6 != null) {
-//            color = s6.getRgb();
-//        } else if (s7 != null) {
-//            color = s7.getRgb();
-//        } else {
-//            color = getResources().getColor(R.color.colorPrimary);
-//        }
-//        return color;
-//    }
 
     private boolean requestAudioFocus() {
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -460,7 +425,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         }
     };
 
-    public class nextTask extends AsyncTask{
+    public class nextTask extends AsyncTask {
         @Override
         protected Object doInBackground(Object[] objects) {
             //判断是否有用户设置下一曲
@@ -549,15 +514,15 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         @Override
         protected void onPostExecute(Object o) {
             super.onPostExecute(o);
-            if (o != null){
+            if (o != null) {
                 play((int) o);
-            }else{
+            } else {
                 Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    public class previousTask extends AsyncTask{
+    public class previousTask extends AsyncTask {
         @Override
         protected Object doInBackground(Object[] objects) {
             if (Data.getPlayMode() == 0) {//0:列表重复
@@ -639,15 +604,15 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         @Override
         protected void onPostExecute(Object o) {
             super.onPostExecute(o);
-            if (o != null){
+            if (o != null) {
                 play((int) o);
-            }else {
+            } else {
                 Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    public class buildNotificationTask extends AsyncTask<String,Integer,state_image_color>{
+    public class buildNotificationTask extends AsyncTask<String, Integer, state_image_color> {
         @Override
         protected state_image_color doInBackground(String... strings) {
             String state = strings[0];
@@ -678,7 +643,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
             } else {
                 color = getResources().getColor(R.color.colorPrimary);
             }
-            return new state_image_color(state,color,largeIcon);
+            return new state_image_color(state, color, largeIcon);
         }
 
         @Override
@@ -702,7 +667,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 play_pauseIntent = pendingIntent(playAction);
             }
 
-            Intent startMain = new Intent(PlayService.this,MainActivity.class);
+            Intent startMain = new Intent(PlayService.this, MainActivity.class);
             PendingIntent startMainActivity = PendingIntent.getActivity(PlayService.this, 0, startMain, PendingIntent.FLAG_UPDATE_CURRENT);
 
             notification = new Notification.Builder(PlayService.this)
@@ -735,24 +700,30 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     }
 
     public class state_image_color {
-        public  Bitmap mImage;
-        public  int mColor;
+        public Bitmap mImage;
+        public int mColor;
         public String mState;
-        public state_image_color(String state,int color,Bitmap image){
+
+        public state_image_color(String state, int color, Bitmap image) {
             mImage = image;
             mColor = color;
             mState = state;
         }
-        public Bitmap getImage(){
+
+        public Bitmap getImage() {
             return mImage;
         }
-        public int getColor(){
+
+        public int getColor() {
             return mColor;
         }
-        public String getState() { return mState;}
+
+        public String getState() {
+            return mState;
+        }
     }
 
-    public class savePlayTimesTask extends AsyncTask{
+    public class savePlayTimesTask extends AsyncTask {
         @Override
         protected Object doInBackground(Object[] objects) {
             int Playtimes = Data.findPlayTimesById(Data.getId(Data.getPosition()));

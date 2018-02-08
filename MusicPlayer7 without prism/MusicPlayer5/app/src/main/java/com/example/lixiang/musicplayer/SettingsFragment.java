@@ -86,7 +86,7 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
                     Colorful.config(getActivity()).primaryColor(Colorful.ThemeColor.ORANGE).apply();
                     break;
                 case "deep_orange":
-                    Colorful.config(getActivity()).primaryColor(Colorful.ThemeColor.CYAN).apply();
+                    Colorful.config(getActivity()).primaryColor(Colorful.ThemeColor.DEEP_ORANGE).apply();
                     break;
                 default:
             }

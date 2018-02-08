@@ -34,9 +34,6 @@ import org.polaric.colorful.Colorful;
 
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
 import static com.example.lixiang.musicplayer.Data.playAction;
-import static com.example.lixiang.musicplayer.Data.shuffleChangeAction;
-import static com.example.lixiang.musicplayer.R.id.random_play_button;
-import static com.example.lixiang.musicplayer.R.id.random_play_text;
 
 
 /**
@@ -45,7 +42,6 @@ import static com.example.lixiang.musicplayer.R.id.random_play_text;
 public class MusiclistFragment extends Fragment {
 
     private FastScrollRecyclerView fastScrollRecyclerView;// 列表对象
-    private MusicListAdapter musicListAdapter;
     private View rootView;
     private RelativeLayout random_play_title;
     private list_PermissionReceiver list_permissionReceiver;
@@ -79,29 +75,10 @@ public class MusiclistFragment extends Fragment {
         new getColorTask().execute();
 
 
-//        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-//            showMusicList();
-//        }
-
-
-
-
-
-        //随机播放点击栏
-        random_play_title = (RelativeLayout) rootView.findViewById(R.id.random_play_title);
-        random_play_title.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //随机播放
-                Data.setPlayMode(1);
-                Data.setFavourite(false);
-                Data.setRecent(false);
-                //打开服务播放
-                Intent intent = new Intent("service_broadcast");
-                intent.putExtra("ACTION", playAction);
-                getActivity().startService(intent);
-            }
-        });
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            showMusicList();
+            Log.v("执行显示2","执行2");
+        }
 
 
 //删除歌曲更新界面广播
@@ -121,24 +98,9 @@ public class MusiclistFragment extends Fragment {
             Intent restart_intent = getActivity().getPackageManager().getLaunchIntentForPackage(getActivity().getPackageName());
             restart_intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(restart_intent);
-//            Data.initialMusicInfo(getActivity());
-//            showMusicList();
-//            display();
-
         }
     }
 
-
-    public void test(View v) {
-        Toast.makeText(getActivity(), "test", Toast.LENGTH_SHORT).show();
-    }
-
-    private MusicListAdapter.MyClickListener mListener = new MusicListAdapter.MyClickListener() {
-        @Override
-        public void myOnClick(final int position, View v) {
-            menu_util.popupMenu(getActivity(), v, position);
-        }
-    };
 
     private class list_PermissionReceiver extends BroadcastReceiver {
 
@@ -146,7 +108,7 @@ public class MusiclistFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             //显示界面
             Log.v("接收初始广播","接收");
-            new showMusicListTask().execute();
+            showMusicList();
         }
     }
 
@@ -198,25 +160,12 @@ public class getColorTask extends AsyncTask{
     protected void onPostExecute(Object o) {
         super.onPostExecute(o);
         int color = getResources().getColor((int)o);
-        TextView random_play_text = (TextView) rootView.findViewById(R.id.random_play_text);
-        ImageView random_play_button = (ImageView) rootView.findViewById(R.id.random_play_button);
-        random_play_button.setColorFilter(color);
-        random_play_text.setTextColor(color);
         fastScrollRecyclerView.setThumbColor(color);
         fastScrollRecyclerView.setPopupBgColor(color);
         Data.setColorAccentSetted((int) o);
     }
 }
-private class showMusicListTask extends AsyncTask{
-    @Override
-    protected Object doInBackground(Object[] objects) {
-        Data.initialMusicInfo(getActivity());
-        return null;
-    }
-
-    @Override
-    protected void onPostExecute(Object o) {
-        super.onPostExecute(o);
+    private void showMusicList(){
         LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
         fastScrollRecyclerView.setLayoutManager(layoutManager);
@@ -224,6 +173,5 @@ private class showMusicListTask extends AsyncTask{
         FastScrollListAdapter adapter = new FastScrollListAdapter();
         fastScrollRecyclerView.setAdapter(adapter);
     }
-}
 
 }

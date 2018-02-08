@@ -6,20 +6,27 @@ import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.TimePickerDialog;
+import android.app.usage.UsageEvents;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Icon;
+import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -40,6 +47,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewGroup;
@@ -64,10 +72,15 @@ import org.polaric.colorful.Colorful;
 
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Timer;
+import java.util.TimerTask;
 
+import static android.R.attr.bitmap;
+import static android.R.attr.logo;
 import static android.R.attr.tag;
 import static android.R.attr.width;
 import static android.view.View.GONE;
+import static com.example.lixiang.musicplayer.Data.Recent_position;
 import static com.example.lixiang.musicplayer.Data.deleteAction;
 import static com.example.lixiang.musicplayer.Data.findPositionById;
 import static com.example.lixiang.musicplayer.Data.initialize;
@@ -84,6 +97,8 @@ import static com.example.lixiang.musicplayer.Data.shuffleChangeAction;
 import static com.example.lixiang.musicplayer.R.id.control_layout;
 import static com.example.lixiang.musicplayer.R.id.drawer_layout;
 import static com.example.lixiang.musicplayer.R.id.main_toolbar;
+import static com.example.lixiang.musicplayer.R.id.play_now_back_color;
+import static com.example.lixiang.musicplayer.R.id.play_now_cover;
 import static com.example.lixiang.musicplayer.R.id.play_pause_button;
 import static com.example.lixiang.musicplayer.R.id.random_play_button;
 import static com.example.lixiang.musicplayer.R.id.random_play_text;
@@ -96,7 +111,7 @@ import static java.security.AccessController.getContext;
 
 public class MainActivity extends CActivity {
     private TextView main_song_title;
-    private SeekBar seekBar;
+    private static SeekBar seekBar;;
     private FloatingActionButton Floatingbar;
     private String path;
     private String title;
@@ -111,9 +126,24 @@ public class MainActivity extends CActivity {
     private DrawerLayout drawerLayout;
     private CardView main_control_ui;
     private boolean isfromSc = false;
-    private int screenWidth;
     private int screenHeight;
     private int flag = 0;
+    private int cx = 0;
+    private int cy = 0;
+    private int finalRadius = 0;
+    private FloatingActionButton floatingActionButton;
+    private ImageView play_now_back_color;
+    private TextView now_on_play_text;
+    private RelativeLayout main_control_layout;
+    private RelativeLayout control_layout;
+    private ImageView play_now_cover;
+    private ImageView play_pause_button;
+    private TextView play_now_song;
+    private TextView play_now_singer;
+    private PlayService playService;
+    public static Handler handler;
+    private MediaPlayer mediaPlayer;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,9 +152,29 @@ public class MainActivity extends CActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        //初始化全局变量
+        floatingActionButton = (FloatingActionButton) findViewById(R.id.play_or_pause);
+        play_now_back_color = (ImageView) findViewById(R.id.play_now_back_color);
+        now_on_play_text = (TextView) findViewById(R.id.now_on_play_text);
+        main_control_layout = (RelativeLayout) findViewById(R.id.main_control_layout);
+        control_layout = (RelativeLayout) findViewById(R.id.control_layout);
+        seekBar = (SeekBar) findViewById(R.id.seekBar);
+        repeat_button = (ImageView) findViewById(R.id.repeat_button);
+        shuffle_button = (ImageView) findViewById(R.id.shuffle_button);
+        main_song_title = (TextView) findViewById(R.id.main_song_title);
+        Floatingbar = (FloatingActionButton) findViewById(R.id.play_or_pause);
+        play_now_cover = (ImageView) findViewById(R.id.play_now_cover);
+        play_pause_button = (ImageView) findViewById(R.id.play_pause_button);
+        play_now_song = (TextView) findViewById(R.id.play_now_song);
+        play_now_singer = (TextView) findViewById(R.id.play_now_singer);
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
 
 
-//沉浸状态栏
+
+        //多屏幕尺寸适应
+        new screenAdaptionTask().execute();
+
+       //沉浸状态栏
         ImmersionBar.with(this).barAlpha(0.3f).init();
 
         viewPager = (ViewPager) findViewById(R.id.viewpager);
@@ -177,16 +227,18 @@ public class MainActivity extends CActivity {
             @Override
             public void onDrawerClosed(View drawerView) {
                 super.onDrawerClosed(drawerView);
-                switch (flag){
+                switch (flag) {
                     case 0:
                         break;
                     case R.id.nav_settings:
                         Intent settings_intent = new Intent(MainActivity.this, SettingsActivity.class);
                         startActivity(settings_intent);
+                        flag = 0;
                         break;
                     case R.id.nav_about:
-                        Intent activity_intent = new Intent(MainActivity.this, AboutActivity.class);
-                        startActivity(activity_intent);
+                        Intent about_intent = new Intent(MainActivity.this, AboutActivity.class);
+                        startActivity(about_intent);
+                        flag = 0;
                         break;
                     default:
                 }
@@ -196,7 +248,7 @@ public class MainActivity extends CActivity {
         mDrawerToggle.syncState();
         drawerLayout.setDrawerListener(mDrawerToggle);
         //Nac_view点击
-        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setCheckedItem(R.id.suggestion_view);
         navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
@@ -210,25 +262,119 @@ public class MainActivity extends CActivity {
                     viewPager.setCurrentItem(2);
                 } else if (id == R.id.nav_settings) {
                     flag = id;
-//                    Intent settings_intent = new Intent(MainActivity.this, SettingsActivity.class);
-//                    startActivity(settings_intent);
                 } else if (id == R.id.nav_about) {
                     flag = id;
-//                    Intent activity_intent = new Intent(MainActivity.this, AboutActivity.class);
-//                    startActivity(activity_intent);
                 }
                 drawerLayout.closeDrawer(GravityCompat.START);
                 return true;
             }
         });
 
+        //申请动态权限
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        } else {
+            new initialTask().execute();
+        }
 
-        //此FLAG可使状态栏透明，且当前视图在绘制时，从屏幕顶端开始即top = 0开始绘制，这也是实现沉浸效果的基础
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-//            this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);//可不加
-//        }
+        //动态注册广播
+        msgReceiver = new MsgReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("play_broadcast");
+        registerReceiver(msgReceiver, intentFilter);
 
+        //上滑面板
+        SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        mLayout.setOverlayed(true);
+        mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View panel, float slideOffset) {
+                main_control_ui = (CardView) findViewById(R.id.main_control_ui);
+                AlphaAnimation alphaAnimation = new AlphaAnimation(slideOffset, 1 - slideOffset);
+                main_control_ui.startAnimation(alphaAnimation);
+                alphaAnimation.setFillAfter(true);//动画结束后保持状态
+                alphaAnimation.setDuration(0);
+            }
+
+            @Override
+            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                if (previousState == DRAGGING && newState == EXPANDED) {
+                    //禁止手势滑动
+                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+                }
+                if (previousState == DRAGGING && newState == COLLAPSED) {
+                    //恢复手势滑动
+                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+                }
+            }
+        });
+
+        ImageView back = (ImageView) findViewById(R.id.back);
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+                if (mLayout != null &&
+                        (mLayout.getPanelState() == EXPANDED || mLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED)) {
+                    mLayout.setPanelState(COLLAPSED);
+                }
+            }
+        });
+        ImageView about = (ImageView) findViewById(R.id.about);
+        about.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
+                popupMenu.getMenuInflater().inflate(R.menu.main_menu, popupMenu.getMenu());
+                popupMenu.show();
+//                MenuItem search = popupMenu.getMenu().findItem(R.id.search);
+                MenuItem sleeper = popupMenu.getMenu().findItem(R.id.sleeper);
+                MenuItem equalizer = popupMenu.getMenu().findItem(R.id.equalizer);
+//                search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+//                    @Override
+//                    public boolean onMenuItemClick(MenuItem menuItem) {
+//                        viewPager.setCurrentItem(2);
+//                        return true;
+//                    }
+//                });
+                sleeper.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        //Timepicker Dialog
+                        final java.util.Calendar c = java.util.Calendar.getInstance();
+                        final int hourNow = c.get(java.util.Calendar.HOUR_OF_DAY);
+                        final int minuteNow = c.get(Calendar.MINUTE);
+                        new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+                            @Override
+                            public void onTimeSet(TimePicker view, int hourPicked, int minutePicked) {
+                                int duration = (hourPicked - hourNow) * 60 + minutePicked - minuteNow;
+                                if (hourPicked >= hourNow && duration > 0) {
+                                    playService.deleteService(duration);
+                                    Toast.makeText(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(MainActivity.this, "所选时间须为当天，且距当前时间2小时内", Toast.LENGTH_LONG).show();
+                                }
+                            }
+                        }, hourNow, minuteNow, true).show();
+                        return true;
+                    }
+                });
+                equalizer.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        Intent intent = new Intent(MainActivity.this, searchActivity.class);
+                        startActivity(intent);
+                        Toast.makeText(MainActivity.this, "Equalizer", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                });
+            }
+        });
+
+
+
+//        SharedPreferences pref = getSharedPreferences("last_music",MODE_PRIVATE);
+//        Data.setPosition(pref.getInt("Id",0));
     }
 
     @Override
@@ -256,12 +402,7 @@ public class MainActivity extends CActivity {
                     public void onTimeSet(TimePicker view, int hourPicked, int minutePicked) {
                         int duration = (hourPicked - hourNow) * 60 + minutePicked - minuteNow;
                         if (hourPicked >= hourNow && duration > 0) {
-
-                            Intent intent = new Intent("service_broadcast");
-                            intent.putExtra("Control", deleteAction);
-                            intent.putExtra("DelayControl", duration);
-                            sendBroadcast(intent);
-
+                            playService.deleteService(duration);
                             Toast.makeText(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT).show();
                         } else {
                             Toast.makeText(MainActivity.this, "所选时间须为当天，且距当前时间2小时内", Toast.LENGTH_LONG).show();
@@ -291,13 +432,7 @@ public class MainActivity extends CActivity {
             Toast.makeText(this, "您拒绝了该权限，程序将无法使用哦", Toast.LENGTH_SHORT).show();
             finish();
         } else if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            Data.initialMusicInfo(this);
-            display();
-            sendPermissionGranted();
-            //重启界面
-            Intent restart_intent = this.getPackageManager().getLaunchIntentForPackage(this.getPackageName());
-            restart_intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            startActivity(restart_intent);
+            new initialTask().execute();
         }
 
 
@@ -308,62 +443,20 @@ public class MainActivity extends CActivity {
         Log.v("OnStart执行", "OnStart");
         super.onStart();
 
-        //申请动态权限
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-        } else {
-            Data.initialMusicInfo(this);
-            display();
-            sendPermissionGranted();
-        }
-
-        //开服务
         ensureServiceStarted();
 
-        //动态注册广播
-        msgReceiver = new MsgReceiver();
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("play_broadcast");
-        registerReceiver(msgReceiver, intentFilter);
-
-        //上滑面板
-        SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-        mLayout.setOverlayed(true);
-        mLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
-            @Override
-            public void onPanelSlide(View panel, float slideOffset) {
-                main_control_ui = (CardView) findViewById(R.id.main_control_ui);
-                AlphaAnimation alphaAnimation = new AlphaAnimation(slideOffset, 1 - slideOffset);
-                main_control_ui.startAnimation(alphaAnimation);
-                alphaAnimation.setFillAfter(true);//动画结束后保持状态
-                alphaAnimation.setDuration(0);
-            }
-
-            @Override
-            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
-                Log.v("State", "previousstate" + previousState);
-                Log.v("State", "previousstate" + newState);
-                if (previousState == DRAGGING && newState == EXPANDED) {
-                    //禁止手势滑动
-                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
-                }
-                if (previousState == DRAGGING && newState == COLLAPSED) {
-                    //恢复手势滑动
-                    drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
-                }
-            }
-        });
+        //绑定服务
+        Intent bindIntent = new Intent(this, PlayService.class);
+        bindService(bindIntent, conn, BIND_AUTO_CREATE);
 
         //拖动seekbar
-        seekBar = (SeekBar) findViewById(R.id.seekBar);
+
+        seekBar.setPadding(0,0,0,0);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    Intent intent = new Intent("service_broadcast");
-                    intent.putExtra("Control", seektoAction);
-                    Data.set_mediaCurrentPosition(progress);
-                    sendBroadcast(intent);
+                    playService.seekto(progress*1000);
                 }
             }
 
@@ -378,91 +471,11 @@ public class MainActivity extends CActivity {
             }
         });
 
+        //更新seekbar
+        updateSeekBar();
+
         //设置起始页
-        if (isfromSc == false) {
-            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-            String start_page = sharedPref.getString("start_page", "");
-
-            Log.v("初始页", "初始页" + start_page);
-            switch (start_page) {
-                case "suggestion":
-                    viewPager.setCurrentItem(0);
-                    break;
-                case "list":
-                    viewPager.setCurrentItem(1);
-                    break;
-                case "cloud":
-                    viewPager.setCurrentItem(2);
-                    break;
-                default:
-            }
-        }
-        ImageView back = (ImageView) findViewById(R.id.back);
-        back.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SlidingUpPanelLayout mLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
-                if (mLayout != null &&
-                        (mLayout.getPanelState() == EXPANDED || mLayout.getPanelState() == SlidingUpPanelLayout.PanelState.ANCHORED)) {
-                    mLayout.setPanelState(COLLAPSED);
-                }
-            }
-        });
-        ImageView about =(ImageView) findViewById(R.id.about);
-        about.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
-                popupMenu.getMenuInflater().inflate(R.menu.main_menu,popupMenu.getMenu());
-                popupMenu.show();
-//                MenuItem search = popupMenu.getMenu().findItem(R.id.search);
-                MenuItem sleeper = popupMenu.getMenu().findItem(R.id.sleeper);
-                MenuItem equalizer = popupMenu.getMenu().findItem(R.id.equalizer);
-//                search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-//                    @Override
-//                    public boolean onMenuItemClick(MenuItem menuItem) {
-//                        viewPager.setCurrentItem(2);
-//                        return true;
-//                    }
-//                });
-                sleeper.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                    @Override
-                    public boolean onMenuItemClick(MenuItem menuItem) {
-                        //Timepicker Dialog
-                        final java.util.Calendar c = java.util.Calendar.getInstance();
-                        final int hourNow = c.get(java.util.Calendar.HOUR_OF_DAY);
-                        final int minuteNow = c.get(Calendar.MINUTE);
-                        new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-                            @Override
-                            public void onTimeSet(TimePicker view, int hourPicked, int minutePicked) {
-                                int duration = (hourPicked - hourNow) * 60 + minutePicked - minuteNow;
-                                if (hourPicked >= hourNow && duration > 0) {
-
-                                    Intent intent = new Intent("service_broadcast");
-                                    intent.putExtra("Control", deleteAction);
-                                    intent.putExtra("DelayControl", duration);
-                                    sendBroadcast(intent);
-
-                                    Toast.makeText(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(MainActivity.this, "所选时间须为当天，且距当前时间2小时内", Toast.LENGTH_LONG).show();
-                                }
-                            }
-                        }, hourNow, minuteNow, true).show();
-                        return true;
-                    }
-                });
-                equalizer.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                    @Override
-                    public boolean onMenuItemClick(MenuItem menuItem) {
-                        Intent intent = new Intent(MainActivity.this,searchActivity.class);
-                        startActivity(intent);
-                        Toast.makeText(MainActivity.this, "Equalizer", Toast.LENGTH_SHORT).show();
-                        return false;
-                    }
-                });
-            }
-        });
+        new setStartPageTask().execute();
 
     }
 
@@ -485,105 +498,82 @@ public class MainActivity extends CActivity {
         Log.v("OnDestory执行", "OnDestory");
         if (Data.getState() == pausing) {
             stopService(new Intent(this, PlayService.class));
+//            SharedPreferences.Editor editor = getSharedPreferences("last_music",MODE_PRIVATE).edit();
+//            editor.putInt("Id",Data.getPosition());
+//            editor.apply();
         }
         super.onDestroy();
     }
     //以下为公共方法
 
     public void display() {
-
         //初始化ScrollingUpPanel
         ChangeScrollingUpPanel(Data.getPosition());
-        main_song_title = (TextView) findViewById(R.id.main_song_title);
         main_song_title.setText(Data.getTitle(Data.getPosition()));
-
     }
 
     public void sendPermissionGranted() {
         Intent intent = new Intent("permission_granted");
         sendBroadcast(intent);
-    }
-
-    //获取歌曲封面颜色并设置为背景
-    private void setBackColor(Bitmap bitmap) {
-        Palette p = Palette.from(bitmap).generate();
-        final Palette.Swatch s1 = p.getVibrantSwatch();
-        Palette.Swatch s2 = p.getDarkVibrantSwatch();
-        Palette.Swatch s3 = p.getLightVibrantSwatch();
-        final Palette.Swatch s4 = p.getMutedSwatch();
-        Palette.Swatch s5 = p.getLightVibrantSwatch();
-        Palette.Swatch s6 = p.getDarkVibrantSwatch();
-        Palette.Swatch s7 = p.getDominantSwatch();
-
-        if (s1 != null) {
-            animation_change_color(s1.getRgb());
-        } else if (s4 != null) {
-            animation_change_color(s4.getRgb());
-        } else if (s2 != null) {
-            animation_change_color(s2.getRgb());
-        } else if (s3 != null) {
-            animation_change_color(s3.getRgb());
-        } else if (s5 != null) {
-            animation_change_color(s5.getRgb());
-        } else if (s6 != null) {
-            animation_change_color(s6.getRgb());
-        } else if (s7 != null) {
-            animation_change_color(s7.getRgb());
-        } else {
-            //default color
-        }
-
+        Intent intent2 = new Intent("list_permission_granted");
+        sendBroadcast(intent2);
+        Log.v("发送初始广播","发送2");
     }
 
     //播放，暂停按钮
     public void play_or_pause(View view) {
-        Floatingbar = (FloatingActionButton) findViewById(R.id.play_or_pause);
         change_play_or_pause_state();
     }
 
     public void change_play_or_pause_state() {
-        ensureServiceStarted();
+//        ensureServiceStarted();
         if (Data.getState() == playing) {
             //发送暂停广播
-            Intent intent = new Intent("service_broadcast");
-            intent.putExtra("Control", pauseAction);
-            sendBroadcast(intent);
+            playService.pause();
+//            Intent intent = new Intent("service_broadcast");
+//            intent.putExtra("Control", pauseAction);
+//            sendBroadcast(intent);
             Floatingbar.setImageResource(R.drawable.play_black);
         } else if (Data.getState() == pausing) {
+            playService.resume();
+
             //发送恢复广播
-            Intent intent = new Intent("service_broadcast");
-            intent.putExtra("Control", playAction);
-            sendBroadcast(intent);
+//            Intent intent = new Intent("service_broadcast");
+//            intent.putExtra("Control", playAction);
+//            sendBroadcast(intent);
             Floatingbar.setImageResource(R.drawable.pause_black);
         }
     }
 
     public void previous(View v) {
-        ensureServiceStarted();
+//        ensureServiceStarted();
+        playService.previous();
+
         //发送上一首广播
-        Intent intent = new Intent("service_broadcast");
-        intent.putExtra("Control", previousAction);
-        sendBroadcast(intent);
+//        Intent intent = new Intent("service_broadcast");
+//        intent.putExtra("Control", previousAction);
+//        sendBroadcast(intent);
     }
 
     public void next(View v) {
-        ensureServiceStarted();
+//        ensureServiceStarted();
+        playService.next();
+
         //发送下一首广播
-        Intent intent = new Intent("service_broadcast");
-        intent.putExtra("Control", nextAction);
-        sendBroadcast(intent);
+//        Intent intent = new Intent("service_broadcast");
+//        intent.putExtra("Control", nextAction);
+//        sendBroadcast(intent);
     }
 
     public void changeRepeat(View v) {
         //playMode 0:列表重复 1:随机 2:单曲重复 3:顺序
-        repeat_button = (ImageView) findViewById(R.id.repeat_button);
-        shuffle_button = (ImageView) findViewById(R.id.shuffle_button);
+
         switch (Data.getPlayMode()) {
             case 3:
                 Data.setPlayMode(0);
                 Alerter.create(MainActivity.this)
                         .setTitle("提醒")
-                        .setText("列表重复播放")
+                        .setText("列表循环播放")
                         .setDuration(500)
                         .setBackgroundColor(Data.getColorAccentSetted())
                         .show();
@@ -594,7 +584,7 @@ public class MainActivity extends CActivity {
                 Data.setPlayMode(2);
                 Alerter.create(MainActivity.this)
                         .setTitle("提醒")
-                        .setText("单曲重复播放")
+                        .setText("单曲循环播放")
                         .setDuration(500)
                         .setBackgroundColor(Data.getColorAccentSetted())
                         .show();
@@ -652,19 +642,16 @@ public class MainActivity extends CActivity {
     }
 
     public void animation_change_color(int Int) {
+        if (cx==0){
+        cx = floatingActionButton.getLeft() + main_control_layout.getLeft()+floatingActionButton.getWidth()/2;
+        cy = control_layout.getTop()-seekBar.getTop()+floatingActionButton.getTop()+floatingActionButton.getHeight()/2;
+        finalRadius = Math.max(play_now_back_color.getWidth(), play_now_back_color.getHeight());}
         final int Int1 = Int;
-        ImageView play_now_back_color = (ImageView) findViewById(R.id.play_now_back_color);
-        TextView now_on_play_text = (TextView) findViewById(R.id.now_on_play_text);
-        RelativeLayout control_layout = (RelativeLayout) findViewById(R.id.control_layout);
-        ImageView play_now_cover = (ImageView) findViewById(R.id.play_now_cover);
         final RelativeLayout activity_now_play = (RelativeLayout) findViewById(R.id.activity_now_play);
-        int cx = (control_layout.getLeft() + control_layout.getRight()) / 2;
-        int cy = (play_now_cover.getTop());
-        int finalRadius = Math.max(play_now_back_color.getWidth(), play_now_back_color.getHeight());
         if (cx != 0) {
             Animator anim = ViewAnimationUtils.createCircularReveal(play_now_back_color, cx, cy, 0, finalRadius);
             play_now_back_color.setBackgroundColor(Int);
-            anim.setDuration(500);
+            anim.setDuration(600);
             anim.start();
             anim.addListener(new AnimatorListenerAdapter() {
                 @Override
@@ -673,9 +660,6 @@ public class MainActivity extends CActivity {
                     activity_now_play.setBackgroundColor(Int1);
                 }
             });
-        } else {
-            play_now_back_color.setBackgroundColor(Int);
-            activity_now_play.setBackgroundColor(Int);
         }
         now_on_play_text.setTextColor(Int);
     }
@@ -686,12 +670,8 @@ public class MainActivity extends CActivity {
         album_id = Data.getAlbumId(position);
         artist = Data.getArtist(position);
         id = Data.getId(position);
-        seekBar = (SeekBar) findViewById(R.id.seekBar);
         seekBar.setProgress(0);
-        seekBar.setMax(Data.get_mediaDuration());
-        seekBar.setPadding(0, 0, 0, 0);
-        repeat_button = (ImageView) findViewById(R.id.repeat_button);
-        shuffle_button = (ImageView) findViewById(R.id.shuffle_button);
+        seekBar.setMax(Data.get_mediaDuration(position)/1000);
 //设置播放模式按钮
         //playMode 0:列表重复 1:随机 2:单曲重复 3:顺序
         if (Data.getPlayMode() == 0) {
@@ -712,31 +692,17 @@ public class MainActivity extends CActivity {
         }
 
         //设置封面,自动封面获取颜色
-
-        ImageView play_now_cover = (ImageView) findViewById(R.id.play_now_cover);
-
         Uri sArtworkUri = Uri.parse("content://media/external/audio/albumart");
         Uri uri = ContentUris.withAppendedId(sArtworkUri, Data.getAlbumId(Data.getPosition()));
-        Glide
-                .with(this)
-                .load(uri)
-                .placeholder(R.drawable.default_album)
-                .crossFade(300)
-                .into(play_now_cover);
-
-
-        Bitmap cover = getArtwork(this, id, Data.getAlbumId(Data.getPosition()), true);
-        setBackColor(cover);
+        Glide.with(this).load(uri).placeholder(R.drawable.default_album).crossFade(300).into(play_now_cover);
+        new setBackColorTask().execute();
 
         //设置歌曲名，歌手
-        TextView play_now_song = (TextView) findViewById(R.id.play_now_song);
-        TextView play_now_singer = (TextView) findViewById(R.id.play_now_singer);
         play_now_song.setText(title);
         play_now_singer.setText(artist);
 
         //设置播放按钮
-        FloatingActionButton floatingActionButton = (FloatingActionButton) findViewById(R.id.play_or_pause);
-        ImageView play_pause_button = (ImageView) findViewById(R.id.play_pause_button);
+
         if (Data.getState() == playing) {
             floatingActionButton.setImageResource(R.drawable.pause_black);
             play_pause_button.setImageResource(R.drawable.pause_black);
@@ -745,22 +711,7 @@ public class MainActivity extends CActivity {
             play_pause_button.setImageResource(R.drawable.play_black);
         }
 
-        //更新seekbar
-        final Handler handler = new Handler();
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                seekBar.setProgress(Data.get_mediaCurrentPosition());
-                handler.postDelayed(this, 500);
-            }
-        };
-        handler.postDelayed(runnable, 500);
 
-        //多屏幕尺寸适应
-        getScreenDimension();
-        RelativeLayout.LayoutParams lp_play_now_cover=(RelativeLayout.LayoutParams)play_now_cover.getLayoutParams();
-        lp_play_now_cover.height= (int)(screenHeight*0.6);
-        play_now_cover.setLayoutParams(lp_play_now_cover);
     }
 
     private class MsgReceiver extends BroadcastReceiver {
@@ -768,9 +719,6 @@ public class MainActivity extends CActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             //更新UI
-            ImageView play_pause_button = (ImageView) findViewById(R.id.play_pause_button);
-            FloatingActionButton floatingActionButton = (FloatingActionButton) findViewById(R.id.play_or_pause);
-            main_song_title.setText(Data.getTitle(Data.getPosition()));
             if (intent.getIntExtra("UIChange", 0) == pauseAction) {
                 play_pause_button.setImageResource(R.drawable.play_black);
                 floatingActionButton.setImageResource(R.drawable.play_black);
@@ -780,6 +728,7 @@ public class MainActivity extends CActivity {
                 floatingActionButton.setImageResource(R.drawable.pause_black);
             }
             if (intent.getIntExtra("UIChange", 0) == mediaChangeAction) {
+                main_song_title.setText(Data.getTitle(Data.getPosition()));
                 ChangeScrollingUpPanel(Data.getPosition());
             }
             if (intent.getIntExtra("onDestroy", 0) == 1) {
@@ -804,15 +753,140 @@ public class MainActivity extends CActivity {
             Data.setPosition(0);
             intent.setClass(this, PlayService.class);
             startService(intent);
+
         }
     }
 
-    private void getScreenDimension(){
-        DisplayMetrics dm =getResources().getDisplayMetrics();
-        screenWidth = dm.widthPixels;
+    private void getScreenDimension() {
+        DisplayMetrics dm = getResources().getDisplayMetrics();
         screenHeight = dm.heightPixels;
-        Log.v("屏幕尺寸","屏幕尺寸：宽度dp = " + screenWidth + "高度dp = " + screenHeight + "密度 = " + dm.densityDpi);
     }
 
+    private class setBackColorTask extends AsyncTask {
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            Bitmap cover = getArtwork(MainActivity.this, id, Data.getAlbumId(Data.getPosition()), true);
+            Palette p = Palette.from(cover).generate();
+            final Palette.Swatch s1 = p.getVibrantSwatch();
+            Palette.Swatch s2 = p.getDarkVibrantSwatch();
+            Palette.Swatch s3 = p.getLightVibrantSwatch();
+            final Palette.Swatch s4 = p.getMutedSwatch();
+            Palette.Swatch s5 = p.getLightVibrantSwatch();
+            Palette.Swatch s6 = p.getDarkVibrantSwatch();
+            Palette.Swatch s7 = p.getDominantSwatch();
+            if (s1 != null) {
+                return s1.getRgb();
+            } else if (s4 != null) {
+                return s4.getRgb();
+            } else if (s2 != null) {
+                return s2.getRgb();
+            } else if (s3 != null) {
+                return s3.getRgb();
+            } else if (s5 != null) {
+                return s5.getRgb();
+            } else if (s6 != null) {
+                return s6.getRgb();
+            } else if (s7 != null) {
+                return s7.getRgb();
+            } else {
+                //default color
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            animation_change_color((int) o);
+        }
+    }
+
+    private class initialTask extends AsyncTask{
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            display();
+            sendPermissionGranted();
+            Log.v("发送初始广播","发送");
+        }
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            Data.initialMusicInfo(MainActivity.this);
+            return null;
+
+        }
+    }
+
+    private class setStartPageTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            if (isfromSc == false) {
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                String start_page = sharedPref.getString("start_page", "");
+                return start_page;
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            switch ((String)o) {
+                case "suggestion":
+                    viewPager.setCurrentItem(0);
+                    break;
+                case "list":
+                    viewPager.setCurrentItem(1);
+                    break;
+                case "cloud":
+                    viewPager.setCurrentItem(2);
+                    break;
+                default:
+            }
+        }
+    }
+
+    private class screenAdaptionTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            getScreenDimension();
+            return (int) (screenHeight * 0.6);
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            RelativeLayout.LayoutParams lp_play_now_cover = (RelativeLayout.LayoutParams) play_now_cover.getLayoutParams();
+            lp_play_now_cover.height = (int) o;
+            play_now_cover.setLayoutParams(lp_play_now_cover);
+        }
+    }
+
+    private ServiceConnection conn = new ServiceConnection() {
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            //返回一个MsgService对象
+            playService = ((PlayService.musicBinder) service).getService();
+        }
+    };
+
+    private void updateSeekBar(){
+        Timer mTimer = new Timer();
+        TimerTask task =new TimerTask() {
+            @Override
+            public void run() {
+                mediaPlayer = playService.getMediaPlayer();
+                if (mediaPlayer != null && mediaPlayer.isPlaying()){
+                    seekBar.setProgress(playService.getMediaPlayer().getCurrentPosition()/1000);}
+            }
+        };
+        mTimer.schedule(task,500,1000);
+    }
 
 }

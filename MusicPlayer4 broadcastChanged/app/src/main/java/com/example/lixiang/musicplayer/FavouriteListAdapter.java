@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,7 +27,7 @@ public class FavouriteListAdapter extends RecyclerView.Adapter<FavouriteListAdap
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         mContext = parent.getContext();
         ViewHolder holder = new ViewHolder(LayoutInflater.from(
-                mContext).inflate(R.layout.recommend_musiclist, parent,
+                mContext).inflate(R.layout.favourite_musiclist, parent,
                 false));
         return holder;
     }
@@ -56,10 +57,9 @@ public class FavouriteListAdapter extends RecyclerView.Adapter<FavouriteListAdap
                 Data.setRecent(false);
                 Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Position).getId()));
                 Data.setFavourite_position (Position);//获取Favourite列表位置
-                Intent intent = new Intent();
+                Intent intent = new Intent("service_broadcast");
                 intent.putExtra("ACTION", playAction);
-                intent.setClass(mContext, PlayService.class);
-                mContext.startService(intent);
+                mContext.sendBroadcast(intent);
             }
         });
         //处理菜单点击
@@ -87,10 +87,11 @@ public class FavouriteListAdapter extends RecyclerView.Adapter<FavouriteListAdap
         public ViewHolder(View view) {
             super(view);
             cardView = (CardView) view;
-            cover = (ImageView) view.findViewById(R.id.Reclist_cover);
-            button = (ImageView) view.findViewById(R.id.Reclist_button);
-            album = (TextView) view.findViewById(R.id.Reclist_album);
-            singer = (TextView) view.findViewById(R.id.Reclist_singer);
+            cover = (ImageView) view.findViewById(R.id.Favourite_list_cover);
+            button = (ImageView) view.findViewById(R.id.Favourite_list_button);
+            album = (TextView) view.findViewById(R.id.Favourite_list_album);
+            singer = (TextView) view.findViewById(R.id.Favourite_list_singer);
         }
     }
+
 }

@@ -1,7 +1,11 @@
 package com.example.lixiang.musicplayer;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 public class RecommendActivity extends AppCompatActivity {
 
@@ -13,4 +17,5 @@ public class RecommendActivity extends AppCompatActivity {
                 .replace(R.id.container, new RecommendFragment())
                 .commit();
     }
+
 }

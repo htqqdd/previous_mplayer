@@ -13,12 +13,18 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
+import android.os.AsyncTask;
+import android.os.Binder;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.os.RemoteException;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
@@ -33,10 +39,17 @@ import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.tapadoo.alerter.Alert;
+import com.tapadoo.alerter.Alerter;
+
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static android.R.attr.action;
 import static android.R.attr.bitmap;
+import static android.R.attr.duration;
+import static android.os.Build.VERSION_CODES.M;
 import static com.example.lixiang.musicplayer.Data.deleteAction;
 import static com.example.lixiang.musicplayer.Data.initialize;
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
@@ -49,6 +62,7 @@ import static com.example.lixiang.musicplayer.Data.previousAction;
 import static com.example.lixiang.musicplayer.Data.sc_playAction;
 import static com.example.lixiang.musicplayer.Data.seektoAction;
 import static com.example.lixiang.musicplayer.Data.serviceStarted;
+import static com.example.lixiang.musicplayer.R.drawable.next;
 import static com.example.lixiang.musicplayer.getCover.getArtwork;
 
 public class PlayService extends Service implements AudioManager.OnAudioFocusChangeListener {
@@ -67,6 +81,9 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     private PhoneStateListener phoneStateListener;
     private TelephonyManager telephonyManager;
     private int pauseTime = 0;
+    private Notification notification;
+    private Timer timer;
+    private TimerTask task;
 
 
     private PendingIntent pendingIntent(int action) {
@@ -78,14 +95,21 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     public PlayService() {
     }
 
+
+    public class musicBinder extends Binder{
+        public PlayService getService(){
+            return PlayService.this;
+        }
+    }
+
+
     @Override
     public void onCreate() {
         super.onCreate();
 
         Data.setServiceStarted(true);
 
-        Log.v("服务是否开启","onCreate"+Data.getServiceState());
-
+        Log.v("服务是否开启", "onCreate" + Data.getServiceState());
 
         //监听耳机状态广播
         IntentFilter head_set_intentFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
@@ -96,42 +120,33 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("service_broadcast");
         registerReceiver(serviceReceiver, intentFilter);
-//处理通话状态
+        //处理通话状态
         callStateListener();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Data.setServiceStarted(true);
-        Log.v("服务是否开启","startCommand"+Data.getServiceState());
+        Log.v("服务是否开启", "startCommand" + Data.getServiceState());
         requestAudioFocus();
 
         releaseMedia();
         mediaPlayer = new MediaPlayer();
+
         if (intent.getIntExtra("ACTION", -2) == initialize) {
             Data.setPosition(0);
         }
-        if (intent.getIntExtra("ACTION", -2) == playAction) {
-            Log.v("接收到playAction","startCommand"+Data.getServiceState());
-            if (Data.getPlayMode() != 1) {
-                play(Data.getPosition());
-                Log.v("发送play方法","startCommand"+Data.getServiceState());
-            } else {
-                Data.setPosition(randomPosition());
-                play(Data.getPosition());
-            }
-        }
         if (intent.getIntExtra("ACTION", -2) == sc_playAction) {
-            Log.v("接收到playAction","startCommand"+Data.getServiceState());
-            if (Data.getInfoInitialized() != 3){
-                Log.v("重新载入数据","重新载入数据");
+            Log.v("接收到playAction", "startCommand" + Data.getServiceState());
+            if (Data.getInfoInitialized() != 3) {
+                Log.v("重新载入数据", "重新载入数据");
                 Data.initialMusicInfo(this);
                 Data.initialMusicPlaytimes(this);
                 Data.initialMusicDate(this);
             }
             if (Data.getPlayMode() != 1) {
                 play(Data.getPosition());
-                Log.v("发送play方法","startCommand"+Data.getServiceState());
+                Log.v("发送play方法", "startCommand" + Data.getServiceState());
             } else {
                 Data.setPosition(randomPosition());
                 play(Data.getPosition());
@@ -151,7 +166,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     public IBinder onBind(Intent intent) {
 //        // TODO: Return the communication channel to the service.
 //        throw new UnsupportedOperationException("Not yet implemented");
-        return null;
+        return new musicBinder();
     }
 
     @Override
@@ -185,7 +200,9 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 Log.v("AUDIOFOCUS_LOSS_CAN", "焦点更短暂丢失");
                 SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
                 Boolean lost_focus = sharedPref.getBoolean("lost_focus", false);
-                if (lost_focus) { if (mediaPlayer.isPlaying()) mediaPlayer.setVolume(0.1f, 0.1f);}
+                if (lost_focus) {
+                    if (mediaPlayer.isPlaying()) mediaPlayer.setVolume(0.1f, 0.1f);
+                }
                 break;
         }
     }
@@ -197,8 +214,12 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         }
     }
 
-    public void play(int position) {
-        Log.v("play方法执行","play"+Data.getServiceState());
+    public MediaPlayer getMediaPlayer(){
+        return mediaPlayer;
+    }
+
+    public void play(final int position) {
+        Log.v("play方法执行", "play" + Data.getServiceState());
         requestAudioFocus();
         if (mediaPlayer == null) mediaPlayer = new MediaPlayer();
         mediaPlayer.reset();
@@ -207,7 +228,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         intent.putExtra("UIChange", mediaChangeAction);
         sendBroadcast(intent);
         Data.setState(playing);
-        buildNotification(playing);
+        new buildNotificationTask().execute(playing);
         Data.setPosition(position);
 
         try {
@@ -216,29 +237,17 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Data.set_mediaDuration(mediaPlayer.getDuration());
+//        Data.set_mediaDuration(mediaPlayer.getDuration());
         mediaPlayer.start();
         //储存播放次数
-        int Playtimes = Data.findPlayTimesById(Data.getId(position));
-        Playtimes++;
-        SharedPreferences.Editor editor = getSharedPreferences("playtimes", MODE_PRIVATE).edit();
-        editor.putInt(String.valueOf(Data.getId(position)), Playtimes);
-        editor.apply();
-        Log.v("Playtimes", "播放次数" + Data.findPlayTimesById(Data.getId(position)));
+        new savePlayTimesTask().execute();
 
-        //发送更新seekbar广播
-        handler = new Handler();
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                if (mediaPlayer != null) {
-                    Data.set_mediaCurrentPosition(mediaPlayer.getCurrentPosition());
-                    handler.postDelayed(this, 500);
-                }
-            }
-        };
-        handler.postDelayed(runnable, 500);
+    }
 
+    public void seekto(int currentPosition){
+        if (mediaPlayer != null){
+            mediaPlayer.seekTo(currentPosition);
+        }
     }
 
     //生成随机数[0-n)
@@ -252,14 +261,21 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (intent.getIntExtra("ACTION", -2) == playAction) {
+                Log.v("接收到playAction", "startCommand" + Data.getServiceState());
+                if (Data.getPlayMode() != 1) {
+                    play(Data.getPosition());
+                    Log.v("发送play方法", "startCommand" + Data.getServiceState());
+                } else {
+                    Data.setPosition(randomPosition());
+                    play(Data.getPosition());
+                }
+            }
             if (intent.getIntExtra("Control", 0) == previousAction) {
                 previous();
             }
             if (intent.getIntExtra("Control", 0) == nextAction) {
                 next();
-            }
-            if (intent.getIntExtra("Control", 0) == seektoAction) {
-                mediaPlayer.seekTo(Data.get_mediaCurrentPosition());
             }
             if (intent.getIntExtra("Control", 0) == pauseAction) {
                 pause();
@@ -268,185 +284,31 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 resume();
             }
             if (intent.getIntExtra("Control", 0) == deleteAction) {
-                if (intent.getIntExtra("DelayControl", 0) != 0 ) {
-                    AlarmManager manager = (AlarmManager)getSystemService(ALARM_SERVICE);
-                    // 设置定时
-                    int duration = intent.getIntExtra("DelayControl",1)*60*1000;
-                    long setTime = duration + SystemClock.elapsedRealtime();
-                    //设置定时任务
-                    manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,setTime,pendingIntent(deleteAction));
-                } else {
-                    pause();
-                    removeNotification();
-                }
+                deleteService(intent.getIntExtra("DelayControl", 0));
             }
         }
+    }
+
+    public void deleteService (int time){
+            if (time != 0) {
+                AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
+                // 设置定时
+                int duration = time * 60 * 1000;
+                long setTime = duration + SystemClock.elapsedRealtime();
+                //设置定时任务
+                manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, setTime, pendingIntent(deleteAction));
+            } else {
+                pause();
+                removeNotification();
+            }
     }
 
     public void previous() {
-        if (Data.getPlayMode() == 0) {//0:列表重复
-            if (Data.IsRecent()) {
-
-                if (Data.getRecent_position() <= 0) {
-                    Data.setPosition(Data.getDateSublist().get(Data.getDateSublist().size() - 1).getPosition());
-                    Data.setRecent_position(Data.getDateSublist().size() - 1);
-                    play(Data.getPosition());
-                } else {
-                    Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() - 1).getPosition());
-                    Data.setRecent_position(Data.getRecent_position() - 1);
-                    play(Data.getPosition());
-                }
-
-            } else if (Data.IsFavourite()) {
-
-                if (Data.getFavourite_position() == 0) {
-                    Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getTimessublist().size() - 1).getId()));
-                    Data.setFavourite_position(Data.getTimessublist().size() - 1);
-                    play(Data.getPosition());
-                } else {
-                    Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() - 1).getId()));
-                    Data.setFavourite_position(Data.getFavourite_position() - 1);
-                    play(Data.getPosition());
-                }
-
-            } else {
-
-                if (Data.getPosition() == 0) {
-                    Data.setPosition(Data.getCursor().getCount() - 1);
-                    play(Data.getPosition());
-                } else {
-                    Data.setPosition(Data.getPosition() - 1);
-                    play(Data.getPosition());
-                }
-            }
-
-        } else if (Data.getPlayMode() == 1) {// 1:随机
-
-            Data.setPosition(randomPosition());
-            play(Data.getPosition());
-
-        } else if (Data.getPlayMode() == 2) {//2:单曲重复
-
-            mediaPlayer.seekTo(0);
-            mediaPlayer.start();
-
-        } else {//3:顺序
-            if (Data.IsRecent()) {
-
-                if (Data.getRecent_position() == 0) {
-                    Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
-                } else {
-                    Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() - 1).getPosition());
-                    Data.setRecent_position(Data.getRecent_position() - 1);
-                    play(Data.getPosition());
-                }
-
-            } else if (Data.IsFavourite()) {
-
-                if (Data.getFavourite_position() == 0) {
-                    Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
-                } else {
-                    Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() - 1).getId()));
-                    Data.setFavourite_position(Data.getFavourite_position() - 1);
-                    play(Data.getPosition());
-                }
-
-            } else {
-
-                if (Data.getPosition() == 0) {
-                    Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
-                } else {
-                    Data.setPosition(Data.getPosition() - 1);
-                    play(Data.getPosition());
-                }
-
-            }
-        }
+        new previousTask().execute();
     }
 
-    public void next() {
-
-        if (Data.getNextMusic() == -1) {//判断是否有用户设置下一曲
-
-            if (Data.getPlayMode() == 0) {//0:列表重复
-                if (Data.IsRecent()) {
-                    if (Data.getRecent_position() < Data.getDateSublist().size() - 1) {
-                        Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() + 1).getPosition());
-                        Data.setRecent_position(Data.getRecent_position() + 1);
-                        play(Data.getPosition());
-                    } else {
-                        Data.setPosition(Data.getDateSublist().get(0).getPosition());
-                        Data.setRecent_position(0);
-                        play(Data.getPosition());
-                    }
-                } else if (Data.IsFavourite()) {
-
-                    if (Data.getFavourite_position() < Data.getTimessublist().size() - 1) {
-                        Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() + 1).getId()));
-                        Data.setFavourite_position(Data.getFavourite_position() + 1);
-                        play(Data.getPosition());
-                    } else {
-                        Data.setPosition(Data.findPositionById(Data.getTimessublist().get(0).getId()));
-                        Data.setFavourite_position(0);
-                        play(Data.getPosition());
-                    }
-
-                } else {
-
-                    if (Data.getPosition() < Data.getCursor().getCount() - 1) {
-                        Data.setPosition(Data.getPosition() + 1);
-                        play(Data.getPosition());
-                    } else {
-                        Data.setPosition(0);
-                        play(Data.getPosition());
-                    }
-                }
-
-            } else if (Data.getPlayMode() == 1) {//1:随机
-                Data.setPosition(randomPosition());
-                play(Data.getPosition());
-            } else if (Data.getPlayMode() == 2) {//2:单曲重复
-                mediaPlayer.seekTo(0);
-                mediaPlayer.start();
-            } else if (Data.getPlayMode() == 3) {//3:顺序
-                if (Data.IsRecent()) {
-
-                    if (Data.getRecent_position() >= Data.getDateSublist().size() - 1) {
-                        Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() + 1).getPosition());
-                        Data.setRecent_position(Data.getRecent_position() + 1);
-                        play(Data.getPosition());
-                    }
-
-                } else if (Data.IsFavourite()) {
-
-                    if (Data.getFavourite_position() >= Data.getTimessublist().size() - 1) {
-                        Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() + 1).getId()));
-                        Data.setFavourite_position(Data.getFavourite_position() + 1);
-                        play(Data.getPosition());
-                    }
-
-                } else {
-
-                    if (Data.getPosition() >= Data.getCursor().getCount() - 1) {
-                        Log.v("position", "此时位置" + position);
-                        Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Data.setPosition(Data.getPosition() + 1);
-                        play(Data.getPosition());
-                    }
-                }
-
-            }
-
-        } else {
-            Data.setPosition(Data.getNextMusic());
-            play(Data.getNextMusic());
-            Data.setNextMusic(-1);
-        }
+    public void next(){
+        new nextTask().execute();
     }
 
     public void pause() {
@@ -455,8 +317,9 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         Intent intent = new Intent("play_broadcast");
         intent.putExtra("UIChange", pauseAction);
         sendBroadcast(intent);
+        if (Data.getState() ==playing){
+        new buildNotificationTask().execute(pausing);}
         Data.setState(pausing);
-        buildNotification(pausing);
     }
 
     public void resume() {
@@ -477,7 +340,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
             intent.putExtra("UIChange", playAction);
             Data.setState(playing);
             sendBroadcast(intent);
-            buildNotification(playing);
+            new buildNotificationTask().execute(playing);
         }
     }
 
@@ -489,7 +352,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 //        intent.putExtra("onDestroy", 1);
 //        sendBroadcast(intent);
         Data.setServiceStarted(false);
-        Log.v("服务是否开启","onDestroy"+Data.getServiceState());
+        Log.v("服务是否开启", "onDestroy" + Data.getServiceState());
         releaseMedia();
         removeNotification();
         removeAudioFocus();
@@ -497,85 +360,41 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         unregisterReceiver(becomingNoisyReceiver);
     }
 
-    //创建通知
-    private void buildNotification(int playState) {
-        int notificationAction = R.drawable.ic_pause_black_24dp;//needs to be initialized
-        PendingIntent play_pauseIntent = null;
-
-        //Build a new notification according to the current state of the MediaPlayer
-        if (playState == playing) {
-            notificationAction = R.drawable.ic_pause_black_24dp;
-            //create the pause action
-            play_pauseIntent = pendingIntent(pauseAction);
-        } else if (playState == pausing) {
-            notificationAction = R.drawable.ic_play_arrow_black_24dp;
-            //create the play action
-            play_pauseIntent = pendingIntent(playAction);
-        }
-
-        Bitmap largeIcon = getArtwork(this, Data.getId(Data.getPosition()), Data.getAlbumId(Data.getPosition()), true);
-
-        Notification notification = new Notification.Builder(this)
-                // Show controls on lock screen even when user hides sensitive content.
-                .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setLargeIcon(largeIcon)
-                .setSmallIcon(R.drawable.ic_album_black_24dp)
-                .setDeleteIntent(pendingIntent(deleteAction))
-                .setColor(getColor(largeIcon))
-//                .setOngoing(Data.getState() == playing)//该选项会导致手表通知不显示
-                // Add media control buttons that invoke intents in your media service
-                .addAction(R.drawable.ic_fast_rewind_black_24dp, "SkiptoPrevious", pendingIntent(previousAction)) // #0
-                .addAction(notificationAction, "Play or Pause", play_pauseIntent)  // #1
-                .addAction(R.drawable.ic_fast_forward_black_24dp, "SkiptoNext", pendingIntent(nextAction))     // #2
-                // Apply the media style template
-                .setStyle(new Notification.MediaStyle()
-                                .setShowActionsInCompactView(0, 1, 2)
-//                        .setMediaSession(new MediaSession(this,"player").getSessionToken())
-                )
-                .setContentTitle(Data.getTitle(Data.getPosition()))
-                .setContentText(Data.getArtist(Data.getPosition()))
-
-
-                .build();
-
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(NOTIFICATION_ID, notification);
-    }
 
     private void removeNotification() {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(NOTIFICATION_ID);
     }
 
-    private int getColor(Bitmap largeIcon) {
-        Palette p = Palette.from(largeIcon).generate();
-        Palette.Swatch s1 = p.getVibrantSwatch();
-        Palette.Swatch s2 = p.getDarkVibrantSwatch();
-        Palette.Swatch s3 = p.getLightVibrantSwatch();
-        Palette.Swatch s4 = p.getMutedSwatch();
-        Palette.Swatch s5 = p.getLightVibrantSwatch();
-        Palette.Swatch s6 = p.getDarkVibrantSwatch();
-        Palette.Swatch s7 = p.getDominantSwatch();
-        int color = 0;
-        if (s1 != null) {
-            color = s1.getRgb();
-        } else if (s4 != null) {
-            color = s4.getRgb();
-        } else if (s2 != null) {
-            color = s2.getRgb();
-        } else if (s3 != null) {
-            color = s3.getRgb();
-        } else if (s5 != null) {
-            color = s5.getRgb();
-        } else if (s6 != null) {
-            color = s6.getRgb();
-        } else if (s7 != null) {
-            color = s7.getRgb();
-        } else {
-            color = getResources().getColor(R.color.colorPrimary);
-        }
-        return color;
-    }
+//    private int getColor(Bitmap largeIcon) {
+//        Palette p = Palette.from(largeIcon).generate();
+//        Palette.Swatch s1 = p.getVibrantSwatch();
+//        Palette.Swatch s2 = p.getDarkVibrantSwatch();
+//        Palette.Swatch s3 = p.getLightVibrantSwatch();
+//        Palette.Swatch s4 = p.getMutedSwatch();
+//        Palette.Swatch s5 = p.getLightVibrantSwatch();
+//        Palette.Swatch s6 = p.getDarkVibrantSwatch();
+//        Palette.Swatch s7 = p.getDominantSwatch();
+//        int color = 0;
+//        if (s1 != null) {
+//            color = s1.getRgb();
+//        } else if (s4 != null) {
+//            color = s4.getRgb();
+//        } else if (s2 != null) {
+//            color = s2.getRgb();
+//        } else if (s3 != null) {
+//            color = s3.getRgb();
+//        } else if (s5 != null) {
+//            color = s5.getRgb();
+//        } else if (s6 != null) {
+//            color = s6.getRgb();
+//        } else if (s7 != null) {
+//            color = s7.getRgb();
+//        } else {
+//            color = getResources().getColor(R.color.colorPrimary);
+//        }
+//        return color;
+//    }
 
     private boolean requestAudioFocus() {
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -628,14 +447,327 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         telephonyManager.listen(phoneStateListener,
                 PhoneStateListener.LISTEN_CALL_STATE);
     }
+
     //Becoming noisy
     private BroadcastReceiver becomingNoisyReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(PlayService.this);
             Boolean headset_unplug = sharedPref.getBoolean("headset_unplug", false);
-            if (headset_unplug){pause();}
+            if (headset_unplug) {
+                pause();
+            }
         }
     };
+
+    public class nextTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            //判断是否有用户设置下一曲
+            if (Data.getNextMusic() == -1) {
+//0:列表重复
+                if (Data.getPlayMode() == 0) {
+                    if (Data.IsRecent()) {
+                        if (Data.getRecent_position() < Data.getDateSublist().size() - 1) {
+                            Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() + 1).getPosition());
+                            Data.setRecent_position(Data.getRecent_position() + 1);
+                            return Data.getPosition();
+                        } else {
+                            Data.setPosition(Data.getDateSublist().get(0).getPosition());
+                            Data.setRecent_position(0);
+                            return Data.getPosition();
+                        }
+                    } else if (Data.IsFavourite()) {
+
+                        if (Data.getFavourite_position() < Data.getTimessublist().size() - 1) {
+                            Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() + 1).getId()));
+                            Data.setFavourite_position(Data.getFavourite_position() + 1);
+                            return Data.getPosition();
+                        } else {
+                            Data.setPosition(Data.findPositionById(Data.getTimessublist().get(0).getId()));
+                            Data.setFavourite_position(0);
+                            return Data.getPosition();
+                        }
+
+                    } else {
+
+                        if (Data.getPosition() < Data.getCursor().getCount() - 1) {
+                            Data.setPosition(Data.getPosition() + 1);
+                            return Data.getPosition();
+                        } else {
+                            Data.setPosition(0);
+                            return Data.getPosition();
+                        }
+                    }
+
+                } else if (Data.getPlayMode() == 1) {//1:随机
+                    Data.setPosition(randomPosition());
+                    return Data.getPosition();
+                } else if (Data.getPlayMode() == 2) {//2:单曲重复
+                    return Data.getPosition();
+                } else if (Data.getPlayMode() == 3) {//3:顺序
+                    if (Data.IsRecent()) {
+
+                        if (Data.getRecent_position() >= Data.getDateSublist().size() - 1) {
+                            return null;
+                        } else {
+                            Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() + 1).getPosition());
+                            Data.setRecent_position(Data.getRecent_position() + 1);
+                            return Data.getPosition();
+                        }
+
+                    } else if (Data.IsFavourite()) {
+
+                        if (Data.getFavourite_position() >= Data.getTimessublist().size() - 1) {
+                            return null;
+                        } else {
+                            Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() + 1).getId()));
+                            Data.setFavourite_position(Data.getFavourite_position() + 1);
+                            return Data.getPosition();
+                        }
+
+                    } else {
+
+                        if (Data.getPosition() >= Data.getCursor().getCount() - 1) {
+                            return null;
+                        } else {
+                            Data.setPosition(Data.getPosition() + 1);
+                            return Data.getPosition();
+                        }
+                    }
+
+                }
+
+            } else {
+                Data.setPosition(Data.getNextMusic());
+                Data.setNextMusic(-1);
+                return Data.getNextMusic();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            if (o != null){
+                play((int) o);
+            }else{
+                Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    public class previousTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            if (Data.getPlayMode() == 0) {//0:列表重复
+                if (Data.IsRecent()) {
+
+                    if (Data.getRecent_position() <= 0) {
+                        Data.setPosition(Data.getDateSublist().get(Data.getDateSublist().size() - 1).getPosition());
+                        Data.setRecent_position(Data.getDateSublist().size() - 1);
+                        return Data.getPosition();
+                    } else {
+                        Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() - 1).getPosition());
+                        Data.setRecent_position(Data.getRecent_position() - 1);
+                        return Data.getPosition();
+                    }
+
+                } else if (Data.IsFavourite()) {
+
+                    if (Data.getFavourite_position() == 0) {
+                        Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getTimessublist().size() - 1).getId()));
+                        Data.setFavourite_position(Data.getTimessublist().size() - 1);
+                        return Data.getPosition();
+                    } else {
+                        Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() - 1).getId()));
+                        Data.setFavourite_position(Data.getFavourite_position() - 1);
+                        return Data.getPosition();
+                    }
+
+                } else {
+
+                    if (Data.getPosition() == 0) {
+                        Data.setPosition(Data.getCursor().getCount() - 1);
+                        return Data.getPosition();
+                    } else {
+                        Data.setPosition(Data.getPosition() - 1);
+                        return Data.getPosition();
+                    }
+                }
+
+            } else if (Data.getPlayMode() == 1) {// 1:随机
+                Data.setPosition(randomPosition());
+                return Data.getPosition();
+            } else if (Data.getPlayMode() == 2) {//2:单曲重复
+                return Data.getPosition();
+
+            } else {//3:顺序
+                if (Data.IsRecent()) {
+
+                    if (Data.getRecent_position() == 0) {
+                        return null;
+                    } else {
+                        Data.setPosition(Data.getDateSublist().get(Data.getRecent_position() - 1).getPosition());
+                        Data.setRecent_position(Data.getRecent_position() - 1);
+                        return Data.getPosition();
+                    }
+
+                } else if (Data.IsFavourite()) {
+
+                    if (Data.getFavourite_position() == 0) {
+                        return null;
+                    } else {
+                        Data.setPosition(Data.findPositionById(Data.getTimessublist().get(Data.getFavourite_position() - 1).getId()));
+                        Data.setFavourite_position(Data.getFavourite_position() - 1);
+                        return Data.getPosition();
+                    }
+
+                } else {
+
+                    if (Data.getPosition() == 0) {
+                        return null;
+                    } else {
+                        Data.setPosition(Data.getPosition() - 1);
+                        return Data.getPosition();
+                    }
+
+                }
+            }
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            if (o != null){
+                play((int) o);
+            }else {
+                Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    public class buildNotificationTask extends AsyncTask<String,Integer,state_image_color>{
+        @Override
+        protected state_image_color doInBackground(String... strings) {
+            String state = strings[0];
+            Bitmap largeIcon = getArtwork(PlayService.this, Data.getId(Data.getPosition()), Data.getAlbumId(Data.getPosition()), true);
+            Palette p = Palette.from(largeIcon).generate();
+            Palette.Swatch s1 = p.getVibrantSwatch();
+            Palette.Swatch s2 = p.getDarkVibrantSwatch();
+            Palette.Swatch s3 = p.getLightVibrantSwatch();
+            Palette.Swatch s4 = p.getMutedSwatch();
+            Palette.Swatch s5 = p.getLightVibrantSwatch();
+            Palette.Swatch s6 = p.getDarkVibrantSwatch();
+            Palette.Swatch s7 = p.getDominantSwatch();
+            int color = 0;
+            if (s1 != null) {
+                color = s1.getRgb();
+            } else if (s4 != null) {
+                color = s4.getRgb();
+            } else if (s2 != null) {
+                color = s2.getRgb();
+            } else if (s3 != null) {
+                color = s3.getRgb();
+            } else if (s5 != null) {
+                color = s5.getRgb();
+            } else if (s6 != null) {
+                color = s6.getRgb();
+            } else if (s7 != null) {
+                color = s7.getRgb();
+            } else {
+                color = getResources().getColor(R.color.colorPrimary);
+            }
+            return new state_image_color(state,color,largeIcon);
+        }
+
+        @Override
+        protected void onPostExecute(state_image_color state_image_color) {
+            super.onPostExecute(state_image_color);
+            String playState = state_image_color.getState();
+            Bitmap largeIcon = state_image_color.getImage();
+            int color = state_image_color.getColor();
+            int notificationAction = R.drawable.ic_pause_black_24dp;//needs to be initialized
+
+            PendingIntent play_pauseIntent = null;
+
+            //Build a new notification according to the current state of the MediaPlayer
+            if (playState == playing) {
+                notificationAction = R.drawable.ic_pause_black_24dp;
+                //create the pause action
+                play_pauseIntent = pendingIntent(pauseAction);
+            } else if (playState == pausing) {
+                notificationAction = R.drawable.ic_play_arrow_black_24dp;
+                //create the play action
+                play_pauseIntent = pendingIntent(playAction);
+            }
+
+            Intent startMain = new Intent(PlayService.this,MainActivity.class);
+            PendingIntent startMainActivity = PendingIntent.getActivity(PlayService.this, 0, startMain, PendingIntent.FLAG_UPDATE_CURRENT);
+
+            notification = new Notification.Builder(PlayService.this)
+                    // Show controls on lock screen even when user hides sensitive content.
+                    .setVisibility(Notification.VISIBILITY_PUBLIC)
+                    .setLargeIcon(largeIcon)
+                    .setSmallIcon(R.drawable.ic_album_black_24dp)
+//                    .setDeleteIntent(pendingIntent(deleteAction))
+                    .setColor(color)
+                    .setContentIntent(startMainActivity)
+                    .setOngoing(Data.getState() == playing)//该选项会导致手表通知不显示
+                    // Add media control buttons that invoke intents in your media service
+                    .addAction(R.drawable.ic_fast_rewind_black_24dp, "SkiptoPrevious", pendingIntent(previousAction)) // #0
+                    .addAction(notificationAction, "Play or Pause", play_pauseIntent)  // #1
+                    .addAction(R.drawable.ic_fast_forward_black_24dp, "SkiptoNext", pendingIntent(nextAction))     // #2
+                    // Apply the media style template
+                    .setStyle(new Notification.MediaStyle()
+                                    .setShowActionsInCompactView(0, 1, 2)
+//                        .setMediaSession(new MediaSession(this,"player").getSessionToken())
+                    )
+                    .setContentTitle(Data.getTitle(Data.getPosition()))
+                    .setContentText(Data.getArtist(Data.getPosition()))
+                    .build();
+
+            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            mNotificationManager.notify(NOTIFICATION_ID, notification);
+
+        }
+
+    }
+
+    public class state_image_color {
+        public  Bitmap mImage;
+        public  int mColor;
+        public String mState;
+        public state_image_color(String state,int color,Bitmap image){
+            mImage = image;
+            mColor = color;
+            mState = state;
+        }
+        public Bitmap getImage(){
+            return mImage;
+        }
+        public int getColor(){
+            return mColor;
+        }
+        public String getState() { return mState;}
+    }
+
+    public class savePlayTimesTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            int Playtimes = Data.findPlayTimesById(Data.getId(Data.getPosition()));
+            Playtimes++;
+            SharedPreferences.Editor editor = getSharedPreferences("playtimes", MODE_PRIVATE).edit();
+            editor.putInt(String.valueOf(Data.getId(Data.getPosition())), Playtimes);
+            editor.apply();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            Log.v("Playtimes", "播放次数" + Data.findPlayTimesById(Data.getId(Data.getPosition())));
+        }
+    }
 
 }

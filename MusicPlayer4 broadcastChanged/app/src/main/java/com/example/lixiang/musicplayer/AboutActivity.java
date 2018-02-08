@@ -10,6 +10,7 @@ import android.support.v4.content.ContextCompat;
 import android.widget.Toast;
 
 import com.danielstone.materialaboutlibrary.ConvenienceBuilder;
+import com.danielstone.materialaboutlibrary.MaterialAboutActivity;
 import com.danielstone.materialaboutlibrary.items.MaterialAboutActionItem;
 import com.danielstone.materialaboutlibrary.items.MaterialAboutItemOnClickAction;
 import com.danielstone.materialaboutlibrary.items.MaterialAboutTitleItem;
@@ -20,7 +21,7 @@ import org.polaric.colorful.CActivity;
 import org.polaric.colorful.Colorful;
 
 
-public class AboutActivity extends MyAboutActivity {
+public class AboutActivity extends MaterialAboutActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

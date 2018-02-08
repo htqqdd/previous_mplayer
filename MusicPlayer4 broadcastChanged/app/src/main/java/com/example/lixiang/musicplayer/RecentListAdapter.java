@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.media.Image;
 import android.net.Uri;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
@@ -29,7 +28,7 @@ private Context mContext;
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         mContext = parent.getContext();
         ViewHolder holder = new ViewHolder(LayoutInflater.from(
-                mContext).inflate(R.layout.recommend_musiclist, parent,
+                mContext).inflate(R.layout.recent_musiclist, parent,
                 false));
         return holder;
     }
@@ -57,9 +56,9 @@ private Context mContext;
                 Data.setFavourite(false);
                 Data.setPosition(Data.getDateSublist().get(Position).getPosition());
                 Data.setRecent_position (Position);//获取Recent列表位置
-                Intent intent = new Intent(mContext, PlayService.class);
+                Intent intent = new Intent("service_broadcast");
                 intent.putExtra("ACTION", playAction);
-                mContext.startService(intent);
+                mContext.sendBroadcast(intent);
             }
         });
         //处理菜单点击
@@ -88,10 +87,10 @@ private Context mContext;
         public ViewHolder(View view) {
             super(view);
             cardView = (CardView) view;
-            cover = (ImageView) view.findViewById(R.id.Reclist_cover);
-            button = (ImageView) view.findViewById(R.id.Reclist_button);
-            album = (TextView) view.findViewById(R.id.Reclist_album);
-            singer = (TextView) view.findViewById(R.id.Reclist_singer);
+            cover = (ImageView) view.findViewById(R.id.Recent_list_cover);
+            button = (ImageView) view.findViewById(R.id.Recent_list_button);
+            album = (TextView) view.findViewById(R.id.Recent_list_album);
+            singer = (TextView) view.findViewById(R.id.Recent_list_singer);
         }
     }
 }

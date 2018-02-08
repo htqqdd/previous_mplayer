@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
@@ -16,11 +18,13 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.OrientationHelper;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import static android.content.ContentValues.TAG;
 import static com.example.lixiang.musicplayer.R.id.recent;
 
 /**
@@ -48,30 +52,15 @@ public class RecommendFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         rootView = inflater.inflate(R.layout.fragment_recommend, container, false);
-        if(ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-            showRecentList();
-        }
-//        TextView recent = (TextView) rootView.findViewById(R.id.recent);
-//        recent.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Data.initialMusicDate();
-//
-//            }
-//        });
+
         //动态注册广播
         permissionReceiver = new PermissionReceiver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("permission_granted");
         getActivity().registerReceiver(permissionReceiver, intentFilter);
-//        showMusicList();
 
         if(ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED){
-            Data.initialMusicInfo(getActivity());
-            Data.initialMusicDate(getActivity());
-            Data.initialMusicPlaytimes(getActivity());
-            showRecentList();
-            showFavouriteList();
+            new initialTask().execute();
         }else {
         }
         return rootView;
@@ -85,11 +74,7 @@ public class RecommendFragment extends Fragment {
     private class PermissionReceiver extends BroadcastReceiver{
         @Override
         public void onReceive(Context context, Intent intent) {
-            Data.initialMusicInfo((Activity) context);
-            Data.initialMusicDate(context);
-            Data.initialMusicPlaytimes((Activity) context);
-            showRecentList();
-            showFavouriteList();
+            new initialTask().execute();
         }
     }
     private void showRecentList(){
@@ -120,4 +105,28 @@ public class RecommendFragment extends Fragment {
 //        favourite.setAdapter(adapter);
     }
 
+    public static void openSAF(Activity context) {
+
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        context.startActivityForResult(intent, 42);
+
+    }
+
+    private class initialTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            Data.initialMusicInfo(getActivity());
+            Data.initialMusicDate(getActivity());
+            Data.initialMusicPlaytimes(getActivity());
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            showRecentList();
+            showFavouriteList();
+        }
+    }
 }

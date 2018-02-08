@@ -149,7 +149,6 @@
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:layout_centerVertical="true"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:onClick="previous"
                 android:padding="16dp"
                 android:src="@drawable/previous" />
@@ -172,7 +171,6 @@
                 android:layout_height="60dp"
                 android:layout_centerVertical="true"
                 android:layout_toRightOf="@id/play_or_pause"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:onClick="next"
                 android:padding="16dp"
                 android:src="@drawable/next" />

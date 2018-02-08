@@ -144,35 +144,37 @@ public static  void popupMenu(final Activity context, View v,final int position)
         if (file.isFile() && file.exists()) {
             //警告窗口
             AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("请注意");
-            builder.setMessage("将从设备中彻底删除该歌曲文件，你确定吗？");
+            builder.setTitle("请注意").setMessage("将从设备中彻底删除该歌曲文件，你确定吗？");
             builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     file.delete();
                     if (file.exists()) {
-                        Alerter.create(context)
-                                .setTitle("提醒")
-                                .setText("删除文件失败,无操作外置SD卡权限")
-                                .setDuration(500)
-                                .setBackgroundColor(Data.getColorAccentSetted())
-                                .show();
-//                        Toast.makeText(context, "删除文件失败，无操作外置SD卡权限", Toast.LENGTH_SHORT).show();
+                        final AlertDialog.Builder openSAF = new AlertDialog.Builder(context);
+                        openSAF.setTitle("无外置SD卡读写权限").setMessage("因Android对外置SD卡的读写权限限制，文件删除失败");
+                        openSAF.setPositiveButton("我知道了",new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+//                                openSAF(context);
+                            }
+                        });
+//                        openSAF.setNegativeButton("取消",new DialogInterface.OnClickListener(){
+//                            @Override
+//                            public void onClick(DialogInterface dialogInterface, int i) {
+//
+//                            }
+//                        });
+                        openSAF.show();
                     } else {
-                        Alerter.create(context)
-                                .setTitle("提醒")
-                                .setText("文件删除成功")
-                                .setDuration(500)
-                                .setBackgroundColor(Data.getColorAccentSetted())
-                                .show();
-//                        Toast.makeText(context, "文件删除成功", Toast.LENGTH_SHORT).show();
+                        Alerter.create(context).setTitle("提醒").setText("文件删除成功").setDuration(500).setBackgroundColor(Data.getColorAccentSetted()).show();
                         //更新mediastore
                         context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
                         Intent intent = new Intent("ChangeUI_broadcast");
                         context.sendBroadcast(intent);
                     }
                 }
-            }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            });
+            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
 
@@ -184,4 +186,9 @@ public static  void popupMenu(final Activity context, View v,final int position)
         return false;
     }
 
+    public static void openSAF(Activity context) {
+
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        context.startActivityForResult(intent, 42);
+    }
 }

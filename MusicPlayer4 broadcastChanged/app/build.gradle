@@ -37,5 +37,6 @@ dependencies {
     compile 'com.github.mancj:MaterialSearchBar:0.7.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha7'
     compile 'com.gyf.barlibrary:barlibrary:2.2.6'
+    compile 'com.github.garretyoder:Colorful:1.1'
     testCompile 'junit:junit:4.12'
 }

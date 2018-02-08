@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -30,6 +31,7 @@ import org.polaric.colorful.Colorful;
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
 import static com.example.lixiang.musicplayer.Data.playAction;
 import static com.example.lixiang.musicplayer.Data.shuffleChangeAction;
+import static com.example.lixiang.musicplayer.R.id.random_play_button;
 import static com.example.lixiang.musicplayer.R.id.random_play_text;
 
 
@@ -42,7 +44,7 @@ public class MusiclistFragment extends Fragment {
     private MusicListAdapter musicListAdapter;
     private View rootView;
     private RelativeLayout random_play_title;
-    private PermissionReceiver permissionReceiver;
+    private list_PermissionReceiver list_permissionReceiver;
     private ListviewFilterReceiver listviewFilterReceiver;
     private UIReceiver uiReceiver;
 
@@ -54,7 +56,7 @@ public class MusiclistFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getActivity().unregisterReceiver(permissionReceiver);
+        getActivity().unregisterReceiver(list_permissionReceiver);
         getActivity().unregisterReceiver(listviewFilterReceiver);
         getActivity().unregisterReceiver(uiReceiver);
     }
@@ -63,153 +65,11 @@ public class MusiclistFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
-
-        rootView = inflater.inflate(R.layout.fragment_musiclist, container, false);
-
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String accent_color = sharedPref.getString("accent_color", "");
-        String primary_color = sharedPref.getString("primary_color", "");
-        TextView random_play_text = (TextView) rootView.findViewById(R.id.random_play_text);
-        ImageView random_play_button = (ImageView) rootView.findViewById(R.id.random_play_button);
-        switch (primary_color) {
-            case "red":
-                Data.setColorPrimarySetted(R.color.md_red_500);
-                break;
-            case "pink":
-                Data.setColorPrimarySetted(R.color.md_pink_500);
-                break;
-            case "purple":
-                Data.setColorPrimarySetted(R.color.md_purple_500);
-                break;
-            case "deep_purple":
-                Data.setColorPrimarySetted(R.color.md_deep_purple_500);
-                break;
-            case "indigo":
-                Data.setColorPrimarySetted(R.color.md_indigo_500);
-                break;
-            case "blue":
-                Data.setColorPrimarySetted(R.color.md_blue_500);
-                break;
-            case "light_blue":
-                Data.setColorPrimarySetted(R.color.md_light_blue_500);
-                break;
-            case "cyan":
-                Data.setColorPrimarySetted(R.color.md_cyan_500);
-                break;
-            case "teal":
-                Data.setColorPrimarySetted(R.color.md_teal_500);
-                break;
-            case "green":
-                Data.setColorPrimarySetted(R.color.md_green_500);
-                break;
-            case "light_green":
-                Data.setColorPrimarySetted(R.color.md_light_green_500);
-                break;
-            case "lime":
-                Data.setColorPrimarySetted(R.color.md_lime_500);
-                break;
-            case "yellow":
-                Data.setColorPrimarySetted(R.color.md_yellow_500);
-                break;
-            case "amber":
-                Data.setColorPrimarySetted(R.color.md_amber_500);
-                break;
-            case "orange":
-                Data.setColorPrimarySetted(R.color.md_orange_500);
-                break;
-            case "deep_orange":
-                Data.setColorPrimarySetted(R.color.md_deep_orange_500);
-                break;
-            default:
-        }
-        switch (accent_color) {
-            case "red":
-                Data.setColorAccentSetted(R.color.md_red_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_red_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_red_500));
-                break;
-            case "pink":
-                Data.setColorAccentSetted(R.color.md_pink_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_pink_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_pink_500));
-                break;
-            case "purple":
-                Data.setColorAccentSetted(R.color.md_purple_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_purple_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_purple_500));
-                break;
-            case "deep_purple":
-                Data.setColorAccentSetted(R.color.md_deep_purple_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_deep_purple_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_deep_purple_500));
-                break;
-            case "indigo":
-                Data.setColorAccentSetted(R.color.md_indigo_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_indigo_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_indigo_500));
-                break;
-            case "blue":
-                Data.setColorAccentSetted(R.color.md_blue_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_blue_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_blue_500));
-                break;
-            case "light_blue":
-                Data.setColorAccentSetted(R.color.md_light_blue_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_light_blue_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_light_blue_500));
-                break;
-            case "cyan":
-                Data.setColorAccentSetted(R.color.md_cyan_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_cyan_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_cyan_500));
-                break;
-            case "teal":
-                Data.setColorAccentSetted(R.color.md_teal_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_teal_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_teal_500));
-                break;
-            case "green":
-                Data.setColorAccentSetted(R.color.md_green_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_green_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_green_500));
-                break;
-            case "light_green":
-                Data.setColorAccentSetted(R.color.md_light_green_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_light_green_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_light_green_500));
-                break;
-            case "lime":
-                Data.setColorAccentSetted(R.color.md_lime_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_lime_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_lime_500));
-                break;
-            case "yellow":
-                Data.setColorAccentSetted(R.color.md_yellow_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_yellow_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_yellow_500));
-                break;
-            case "amber":
-                Data.setColorAccentSetted(R.color.md_amber_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_amber_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_amber_500));
-                break;
-            case "orange":
-                Data.setColorAccentSetted(R.color.md_orange_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_orange_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_orange_500));
-                break;
-            case "deep_orange":
-                Data.setColorAccentSetted(R.color.md_deep_orange_500);
-                random_play_button.setColorFilter(getResources().getColor(R.color.md_deep_orange_500));
-                random_play_text.setTextColor(getResources().getColor(R.color.md_deep_orange_500));
-                break;
-            default:
-        }
         //动态注册广播
-        permissionReceiver = new PermissionReceiver();
+        list_permissionReceiver = new list_PermissionReceiver();
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("permission_granted");
-        getActivity().registerReceiver(permissionReceiver, intentFilter);
+        intentFilter.addAction("list_permission_granted");
+        getActivity().registerReceiver(list_permissionReceiver, intentFilter);
 
         //动态注册广播
         listviewFilterReceiver= new ListviewFilterReceiver();
@@ -217,11 +77,14 @@ public class MusiclistFragment extends Fragment {
         intentFilter.addAction("listview_filter");
         getActivity().registerReceiver(listviewFilterReceiver, Filter);
 
-//        showMusicList();
+        rootView = inflater.inflate(R.layout.fragment_musiclist, container, false);
+        listView = (ListView) rootView.findViewById(R.id.music_list);
+        new getColorTask().execute();
 
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            showMusicList();
-        }
+
+//        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+//            showMusicList();
+//        }
 
 
         //获取listview
@@ -230,14 +93,13 @@ public class MusiclistFragment extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                Intent intent = new Intent();
+                Intent intent = new Intent("service_broadcast");
                 Data.setPlayMode(3);
                 Data.setFavourite(false);
                 Data.setRecent(false);
                 intent.putExtra("ACTION", playAction);
                 Data.setPosition(position);
-                intent.setClass(getActivity(), PlayService.class);
-                getActivity().startService(intent);
+                getActivity().sendBroadcast(intent);
             }
         });
 
@@ -252,7 +114,7 @@ public class MusiclistFragment extends Fragment {
                 Data.setFavourite(false);
                 Data.setRecent(false);
                 //打开服务播放
-                Intent intent = new Intent(getActivity(), PlayService.class);
+                Intent intent = new Intent("service_broadcast");
                 intent.putExtra("ACTION", playAction);
                 getActivity().startService(intent);
             }
@@ -265,9 +127,6 @@ public class MusiclistFragment extends Fragment {
         intentFilter2.addAction("ChangeUI_broadcast");
         getActivity().registerReceiver(uiReceiver, intentFilter2);
         return rootView;
-
-
-
 
 
     }
@@ -286,12 +145,6 @@ public class MusiclistFragment extends Fragment {
         }
     }
 
-    public void showMusicList() {
-        musicListAdapter = new MusicListAdapter(getActivity(), Data.getCursor(), mListener);
-        listView = (ListView) rootView.findViewById(R.id.music_list);
-        listView.setAdapter(musicListAdapter);
-        listView.setTextFilterEnabled(true);
-    }
 
     public void test(View v) {
         Toast.makeText(getActivity(), "test", Toast.LENGTH_SHORT).show();
@@ -304,12 +157,13 @@ public class MusiclistFragment extends Fragment {
         }
     };
 
-    private class PermissionReceiver extends BroadcastReceiver {
+    private class list_PermissionReceiver extends BroadcastReceiver {
 
         @Override
         public void onReceive(Context context, Intent intent) {
             //显示界面
-            showMusicList();
+            Log.v("接收初始广播","接收");
+            new showMusicListTask().execute();
         }
     }
 
@@ -322,6 +176,74 @@ private class ListviewFilterReceiver extends BroadcastReceiver{
             listView.clearTextFilter();
         }else{
             listView.setFilterText(newText);}
+    }
+}
+
+public class getColorTask extends AsyncTask{
+    @Override
+    protected Object doInBackground(Object[] objects) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String accent_color = sharedPref.getString("accent_color", "");
+        switch (accent_color) {
+            case "red":
+                return R.color.md_red_500;
+            case "pink":
+                return R.color.md_pink_500;
+            case "purple":
+                return R.color.md_purple_500;
+            case "deep_purple":
+                return R.color.md_deep_purple_500;
+            case "indigo":
+                return R.color.md_indigo_500;
+            case "blue":
+                return R.color.md_blue_500;
+            case "light_blue":
+                return R.color.md_light_blue_500;
+            case "cyan":
+                return R.color.md_cyan_500;
+            case "teal":
+                return R.color.md_teal_500;
+            case "green":
+                return R.color.md_green_500;
+            case "light_green":
+                return R.color.md_light_green_500;
+            case "lime":
+                return R.color.md_lime_500;
+            case "yellow":
+                return R.color.md_yellow_500;
+            case "amber":
+                return R.color.md_amber_500;
+            case "orange":
+                return R.color.md_orange_500;
+            case "deep_orange":
+                return R.color.md_deep_orange_500;
+            default:
+        }
+        return R.color.md_pink_500;
+    }
+
+    @Override
+    protected void onPostExecute(Object o) {
+        super.onPostExecute(o);
+        TextView random_play_text = (TextView) rootView.findViewById(R.id.random_play_text);
+        ImageView random_play_button = (ImageView) rootView.findViewById(R.id.random_play_button);
+        random_play_button.setColorFilter(getResources().getColor((int)o));
+        random_play_text.setTextColor(getResources().getColor((int)o));
+        Data.setColorAccentSetted((int)o);
+    }
+}
+private class showMusicListTask extends AsyncTask{
+    @Override
+    protected Object doInBackground(Object[] objects) {
+        musicListAdapter = new MusicListAdapter(getActivity(), Data.getCursor(), mListener);
+        return null;
+    }
+
+    @Override
+    protected void onPostExecute(Object o) {
+        super.onPostExecute(o);
+        listView.setAdapter(musicListAdapter);
+        listView.setTextFilterEnabled(true);
     }
 }
 

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
@@ -37,8 +38,8 @@ import static android.os.Build.VERSION_CODES.M;
 
 public class Data {
 //程序常量
-    public static int pausing = 0;
-    public static int playing = 1;
+    public static String pausing = "PAUSING";
+    public static String playing = "PLAYING";
     public static int resuming = 2;
     public static int initialize = -1;
     public static int previousAction = 11;
@@ -66,7 +67,7 @@ public class Data {
     private static int playMode = 3;
     private static int position = 0;
     private static int nextMusic = -1;
-    private static int  state = pausing;
+    private static String  state = pausing;
     private static String[] media_music_info;
     private static Cursor cursor;
     private static int[] _ids;
@@ -82,11 +83,11 @@ public class Data {
     private static ArrayList<music_playtimes> playtimesArrayList;
     private static SharedPreferences playtimes;
     public static int colorPrimarySetted;
-    public static int colorAccentSetted;
+    public static int colorAccentSetted = R.color.md_pink_500;
 
 
-    public static int get_mediaDuration() {
-        return mediaDuration;
+    public static int get_mediaDuration(int position) {
+        return _duration[position];
     }
     public static int get_mediaCurrentPosition() {
         return mediaCurrentPosition;
@@ -95,7 +96,7 @@ public class Data {
         return  playMode;
     }
     public static int getPosition(){ return position;}
-    public static int getState(){return state;}
+    public static String getState(){return state;}
     public static int getNextMusic(){return nextMusic;}
     public static boolean IsRecent() {return is_recent;}
     public static boolean IsFavourite() {return is_favourite;}
@@ -141,7 +142,7 @@ public class Data {
     public static void setPosition(int position){
         Data.position = position;
     }
-    public static void setState(int state){
+    public static void setState(String state){
         Data.state = state;
     }
     public static void setNextMusic(int position){Data.nextMusic = position;}

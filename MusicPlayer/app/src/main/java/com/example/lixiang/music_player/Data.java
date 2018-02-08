@@ -35,6 +35,7 @@ public class Data {
     public static int deleteAction = 18;
     public static int sc_playAction = 19;
     public static int openDialog =20;
+    public static int resetAction = 21;
 
     public static boolean is_recent = false;
     public static boolean is_favourite = false;
@@ -90,15 +91,15 @@ public class Data {
     private static SharedPreferences playtimes;
     public static boolean firstOpen = true;
 
-    public static List<DownloadFragment.Music> getNetMusicList() {
+    public static List<Music> getNetMusicList() {
         return netMusicList;
     }
 
-    public static void setNetMusicList(List<DownloadFragment.Music> netMusicList) {
+    public static void setNetMusicList(List<Music> netMusicList) {
         Data.netMusicList = netMusicList;
     }
 
-    private static List<DownloadFragment.Music> netMusicList;
+    private static List<Music> netMusicList;
 
 
     public static boolean isHasInitialized() {return hasInitialized;}

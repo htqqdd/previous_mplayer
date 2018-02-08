@@ -40,18 +40,33 @@ import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 
-import static com.example.lixiang.music.Data.next;
-import static com.example.lixiang.music.Data.pausing;
-import static com.example.lixiang.music.Data.playing;
-import static com.example.lixiang.music.Data.previous;
-import static com.example.lixiang.music.Data.resuming;
-import static com.example.lixiang.music.Data.seekto;
+import static android.R.attr.animation;
+import static android.R.attr.id;
+import static android.R.attr.path;
+import static com.example.lixiang.music.MainActivity.pausing;
+import static com.example.lixiang.music.MainActivity.play;
+import static com.example.lixiang.music.MainActivity.playing;
+import static com.example.lixiang.music.R.id.activity_now_play;
+import static com.example.lixiang.music.R.id.control_layout;
+import static com.example.lixiang.music.R.id.now_on_play_text;
+import static com.example.lixiang.music.R.id.play_now_back_color;
+import static com.example.lixiang.music.R.id.play_now_cover;
+import static com.example.lixiang.music.R.id.repeat_button;
 import static com.example.lixiang.music.getCover.getArtwork;
 
 public class PlayNow extends AppCompatActivity {
-
+    //    private  MediaPlayer mp ;
+//    private MediaPlayer.OnCompletionListener mCompletionListener = new MediaPlayer.OnCompletionListener() {
+//        @Override
+//        public void onCompletion(MediaPlayer mp) {
+//            releaseMediaPlayer();
+//        }
+//    };
     private SeekBar seekBar;
     private FloatingActionButton Floatingbar;
+    private Handler mHandler = new Handler();
+    private double starttime = 0;
+    private double finaltime = 0;
     private int[] _ids;// 保存音乐ID临时数组
     private int[] _albumids;
     private String[] _artists;// 保存艺术家
@@ -59,12 +74,15 @@ public class PlayNow extends AppCompatActivity {
     private String[] _data;// 标题临时数组
     private Cursor cursor;
     private String[] media_music_info;
+    private MediaPlayer mp = new MediaPlayer();
     private String path;
     private String title;
     private int album_id;
     private String artist;
     private int id;
+    private int position;
     private MsgReceiver msgReceiver;
+    private int state;
     private ImageView shuffle_button;
     private ImageView repeat_button;
 
@@ -98,9 +116,12 @@ public class PlayNow extends AppCompatActivity {
             this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);//可不加
         }
 
+        Intent intent = getIntent();
+        position = intent.getIntExtra("position", 0);
+        state = intent.getIntExtra("state", -2);
         initialMusicInfo();
         seekBar = (SeekBar) findViewById(R.id.seekBar);
-        ChangeActivity(Data.getPosition());
+        ChangeActivity(position);
 
         //动态注册广播
         msgReceiver = new PlayNow.MsgReceiver();
@@ -109,39 +130,30 @@ public class PlayNow extends AppCompatActivity {
         registerReceiver(msgReceiver, intentFilter);
 
 
-        //更新seekbar
-        final Handler handler = new Handler();
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                seekBar.setProgress(Data.get_mediaCurrentPosition());
-                handler.postDelayed(this, 500);
-            }
-        };
-        handler.postDelayed(runnable, 500);
-        //拖动seekbar
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    Intent intent = new Intent("service_broadcast");
-                    intent.putExtra("Control", seekto);
-                    Data.set_mediaCurrentPosition(progress);
-                    sendBroadcast(intent);
-                }
-            }
+//        handler = new MyHandler();
 
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
-            }
-        });
-
+//
+//
+//        //拖动seekbar同步歌曲
+//        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                if (mp != null && fromUser){
+//                    mp.seekTo(progress);
+//                }
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//        });
+//
     }
 
     //播放，暂停按钮
@@ -151,21 +163,30 @@ public class PlayNow extends AppCompatActivity {
     }
 
     public void change_play_or_pause_state() {
-        if (Data.getState() == playing) {
+        if (state == playing) {
             //发送暂停广播
             Intent intent = new Intent("service_broadcast");
-            Data.setState(pausing);
+            intent.putExtra("pause", 2);
             sendBroadcast(intent);
             Floatingbar.setImageResource(R.drawable.play_black);
-        } else if (Data.getState() == pausing) {
+        } else if (state == pausing) {
             //发送恢复广播
             Intent intent = new Intent("service_broadcast");
-            Data.setState(resuming);
+            intent.putExtra("resume", 3);
             sendBroadcast(intent);
             Floatingbar.setImageResource(R.drawable.pause_black);
         }
     }
 
+    //
+//    //同步seekbar与进度条时间
+//    private Runnable UpdateSongTime = new Runnable() {
+//        public void run() {
+//            starttime = mp.getCurrentPosition();
+//            seekBar.setProgress((int)starttime);
+//            mHandler.postDelayed(this, 100);
+//        }
+//    };
     //获取歌曲封面颜色并设置为背景
     private void setBackColor(Bitmap bitmap) {
         Palette p = Palette.from(bitmap).generate();
@@ -176,6 +197,9 @@ public class PlayNow extends AppCompatActivity {
         Palette.Swatch s5 = p.getLightVibrantSwatch();
         Palette.Swatch s6 = p.getDarkVibrantSwatch();
         Palette.Swatch s7 = p.getDominantSwatch();
+//        int cx = (control_layout.getLeft() + control_layout.getRight()) / 2;
+//        int cy = (play_now_cover.getTop()) ;
+//        int finalRadius = Math.max(play_now_back_color.getWidth(), play_now_back_color.getHeight());
 
         if (s1 != null) {
             animation_change_color(s1.getRgb());
@@ -231,7 +255,9 @@ public class PlayNow extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             //拿到position，更新UI
-            ChangeActivity(Data.getPosition());
+            position = intent.getIntExtra("position", 0);
+            state = intent.getIntExtra("state", -2);
+            ChangeActivity(position);
         }
 
     }
@@ -242,8 +268,6 @@ public class PlayNow extends AppCompatActivity {
         album_id = _albumids[position];
         artist = _artists[position];
         id = _ids[position];
-        seekBar.setPadding(0,0,0,0);
-        seekBar.setMax(Data.get_mediaDuration());
 
 //设置播放模式按钮
         repeat_button = (ImageView) findViewById(R.id.repeat_button);
@@ -268,6 +292,11 @@ public class PlayNow extends AppCompatActivity {
             shuffle_button.setImageResource(R.drawable.shuffle_grey);
         }
 
+        seekBar.setMax(Data.get_mediaDuration());
+        Log.v("mediaDuration", "隐喻长度" + Data.get_mediaDuration());
+        seekBar.setPadding(0, 0, 0, 0);
+
+
         //设置封面,自动封面获取颜色
 
         ImageView play_now_cover = (ImageView) findViewById(R.id.play_now_cover);
@@ -283,6 +312,7 @@ public class PlayNow extends AppCompatActivity {
 
 
         Bitmap cover = getArtwork(this, id, album_id, true);
+//        play_now_cover.setImageBitmap(cover);
         setBackColor(cover);
 
         //设置歌曲名，歌手
@@ -293,9 +323,9 @@ public class PlayNow extends AppCompatActivity {
 
         //设置播放按钮
         FloatingActionButton floatingActionButton = (FloatingActionButton) findViewById(R.id.play_or_pause);
-        if (Data.getState() == playing) {
+        if (state == playing) {
             floatingActionButton.setImageResource(R.drawable.pause_black);
-        } else if (Data.getState() == pausing) {
+        } else if (state == pausing) {
             floatingActionButton.setImageResource(R.drawable.play_black);
         }
 
@@ -304,14 +334,14 @@ public class PlayNow extends AppCompatActivity {
     public void previous(View v) {
         //发送上一首广播
         Intent intent = new Intent("service_broadcast");
-        intent.putExtra("Control", previous);
+        intent.putExtra("previous", -1);
         sendBroadcast(intent);
     }
 
     public void next(View v) {
         //发送下一首广播
         Intent intent = new Intent("service_broadcast");
-        intent.putExtra("Control", next);
+        intent.putExtra("next", 1);
         sendBroadcast(intent);
     }
 
@@ -375,9 +405,7 @@ public void animation_change_color(int Int){
         });
     } else {
         play_now_back_color.setBackgroundColor(Int);
-        activity_now_play.setBackgroundColor(Int);
     }
     now_on_play_text.setTextColor(Int);
 }
-
 }

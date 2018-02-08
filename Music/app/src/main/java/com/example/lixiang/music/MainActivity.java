@@ -13,6 +13,7 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -27,10 +28,11 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-import static com.example.lixiang.music.Data.initialize;
-import static com.example.lixiang.music.Data.pausing;
-import static com.example.lixiang.music.Data.play;
-import static com.example.lixiang.music.Data.playing;
+
+import org.w3c.dom.Text;
+
+import static com.example.lixiang.music.R.id.main_song_title;
+
 import static com.example.lixiang.music.R.menu.main;
 
 
@@ -46,8 +48,16 @@ public class MainActivity extends AppCompatActivity
     private Cursor cursor;
     private MusicListAdapter musicListAdapter;
     private String[] media_music_info;
+    public static int play = 0;
+    public static int initialize = -1;
+    public static  int randomplay = 1;
+    public static int playing = 2;
+    public static int pausing = 3;
+    private int state = pausing;
     private MsgReceiver msgReceiver;
-    private TextView main_song_title;
+    private int position = 0;
+
+    private static final String MUSIC_LIST = "com.example.lixiang.music.list";
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -64,19 +74,9 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         //新标题栏
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
 
         //申请动态权限
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
@@ -84,11 +84,10 @@ public class MainActivity extends AppCompatActivity
         }else {
             display();
         }
-
         //开服务
         Intent intent = new Intent();
         intent.putExtra("ACTION",initialize);
-        Data.setPosition(0);
+        intent.putExtra("listPosition",0);
         intent.setClass(MainActivity.this, PlayService.class);
         startService(intent);
 
@@ -98,9 +97,14 @@ public class MainActivity extends AppCompatActivity
         intentFilter.addAction("play_broadcast");
         registerReceiver(msgReceiver, intentFilter);
 
-        main_song_title = (TextView) findViewById(R.id.main_song_title);
-        main_song_title.setText(_titles[Data.getPosition()]);
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.setDrawerListener(toggle);
+        toggle.syncState();
 
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
     }
 
     @Override
@@ -141,6 +145,8 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
+
+
             // Handle the camera action
         if (id == R.id.nav_music_gallery) {
 
@@ -187,7 +193,8 @@ public class MainActivity extends AppCompatActivity
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent intent = new Intent();
                 intent.putExtra("ACTION",play);
-                Data.setPosition(position);
+                intent.putExtra("listPosition",position);
+                Log.v("position","first position"+position);
                 intent.setClass(MainActivity.this, PlayService.class);
                 startService(intent);
 
@@ -232,13 +239,14 @@ public class MainActivity extends AppCompatActivity
     }
     public void start_play_now(View v){
         Intent intent = new Intent(this,PlayNow.class);
+        intent.putExtra("position",position);
+        intent.putExtra("state",state);
         startActivity(intent);
     }
     public void random_play(View v) {
-        //随机播放
         Data.setPlayMode(1);
         Intent intent = new Intent();
-        intent.putExtra("ACTION", play);
+        intent.putExtra("ACTION", randomplay);
         intent.setClass(MainActivity.this, PlayService.class);
         startService(intent);
     }
@@ -248,14 +256,15 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            //更新UI
+            //拿到position，更新UI
+            position = intent.getIntExtra("position",0);
+            state = intent.getIntExtra("state",-2);
+           String title = _titles[position];
             ImageView play_pause_button = (ImageView) findViewById( R.id.play_pause_button);
-            main_song_title.setText(_titles[Data.getPosition()]);
-            if (Data.getState() == pausing) {
-                play_pause_button.setImageResource(R.drawable.play_black);
-            } else if (Data.getState() == playing){
-                play_pause_button.setImageResource(R.drawable.pause_black);
-            }
+            TextView main_song_title = (TextView) findViewById(R.id.main_song_title);
+            main_song_title.setText(title);
+            play_pause_button.setImageResource(R.drawable.pause_black);
+
         }
 
     }

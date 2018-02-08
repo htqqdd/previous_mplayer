@@ -1,12 +1,18 @@
 package com.example.lixiang.music;
 
+import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Log;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -16,12 +22,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
-
-import static com.example.lixiang.music.getCover.getArtwork;
+import static com.example.lixiang.music.Data.initialize;
+import static com.example.lixiang.music.Data.pausing;
+import static com.example.lixiang.music.Data.play;
+import static com.example.lixiang.music.Data.playing;
+import static com.example.lixiang.music.R.menu.main;
 
 
 public class MainActivity extends AppCompatActivity
@@ -35,70 +45,29 @@ public class MainActivity extends AppCompatActivity
     private ListView listView;// 列表对象
     private Cursor cursor;
     private MusicListAdapter musicListAdapter;
+    private String[] media_music_info;
+    private MsgReceiver msgReceiver;
+    private TextView main_song_title;
 
-    private static final String MUSIC_LIST = "com.example.lixiang.music.list";
-    /**
-     * 定义查找音乐信息数组，1.标题 2.音乐时间 3.艺术家 4.音乐id 5.显示名字 6.数据
-     */
-    String[] media_music_info = new String[]{MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME,
-            MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.ALBUM_ID};
-
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (grantResults.length >0 && grantResults[0] == PackageManager.PERMISSION_DENIED){
+            Toast.makeText(this, "您拒绝了该权限，程序将无法使用哦", Toast.LENGTH_SHORT).show();
+            finish();
+        } else {
+            display();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         //新标题栏
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-
-        //获取listview
-        listView = (ListView) findViewById(R.id.music_list);
-        showMusicList();
-
-
-
-        // ListView点击，打开play_now
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Intent intent = new Intent();
-                intent.putExtra("path", _data[position]);
-                intent.putExtra("title", _titles[position]);
-                intent.putExtra("artist", _artists[position]);
-                intent.putExtra("id", _ids[position]);
-                intent.putExtra("album_id", _albumids[position]);
-                intent.setClass(MainActivity.this, PlayNow.class);
-                startActivity(intent);
-
-
-
-//                try {
-//                    mp.reset();// 把各项参数恢复到初始状态
-//                    mp.setDataSource(_data[position]);
-//                    mp.prepare(); // 进行缓冲
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//                mp.start();
-
-
-
-//                mp.setDataSource(_data[position]);
-//                Intent intent = new Intent();
-//                intent.putExtra("url", _data[position]);
-//                intent.setClass(MainActivity.this, PlayService.class);
-//                startService(intent);
-
-
-
-            }
-        });
-
-
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -108,6 +77,30 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        //申请动态权限
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},1);
+        }else {
+            display();
+        }
+
+        //开服务
+        Intent intent = new Intent();
+        intent.putExtra("ACTION",initialize);
+        Data.setPosition(0);
+        intent.setClass(MainActivity.this, PlayService.class);
+        startService(intent);
+
+        //动态注册广播
+        msgReceiver = new MsgReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("play_broadcast");
+        registerReceiver(msgReceiver, intentFilter);
+
+        main_song_title = (TextView) findViewById(R.id.main_song_title);
+        main_song_title.setText(_titles[Data.getPosition()]);
+
     }
 
     @Override
@@ -123,7 +116,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(main, menu);
         return true;
     }
 
@@ -148,8 +141,6 @@ public class MainActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-
-
             // Handle the camera action
         if (id == R.id.nav_music_gallery) {
 
@@ -180,8 +171,40 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        stopService(new Intent(this,PlayService.class));
+    }
+
+    private void display() {
+        //获取listview
+        listView = (ListView) findViewById(R.id.music_list);
+        showMusicList();
+        //Listview点击，打开服务
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent();
+                intent.putExtra("ACTION",play);
+                Data.setPosition(position);
+                intent.setClass(MainActivity.this, PlayService.class);
+                startService(intent);
+
+            }
+        });
+    }
+
 
     private void showMusicList() {
+        /**
+         * 定义查找音乐信息数组，1.标题 2.音乐时间 3.艺术家 4.音乐id 5.显示名字 6.数据
+         */
+        media_music_info = new String[]{MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media._ID, MediaStore.Audio.Media.DISPLAY_NAME,
+                MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.ALBUM_ID};
+
         cursor = getContentResolver().query(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, media_music_info,
                 null, null, MediaStore.Audio.Media.DEFAULT_SORT_ORDER);
@@ -202,11 +225,39 @@ public class MainActivity extends AppCompatActivity
         musicListAdapter = new MusicListAdapter(this, cursor);
         listView.setAdapter(musicListAdapter);
     }
+
+
     public void test (View v){
         Toast.makeText(this, "test", Toast.LENGTH_SHORT).show();
     }
+    public void start_play_now(View v){
+        Intent intent = new Intent(this,PlayNow.class);
+        startActivity(intent);
+    }
+    public void random_play(View v) {
+        //随机播放
+        Data.setPlayMode(1);
+        Intent intent = new Intent();
+        intent.putExtra("ACTION", play);
+        intent.setClass(MainActivity.this, PlayService.class);
+        startService(intent);
+    }
 
 
+    private class MsgReceiver extends BroadcastReceiver{
 
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //更新UI
+            ImageView play_pause_button = (ImageView) findViewById( R.id.play_pause_button);
+            main_song_title.setText(_titles[Data.getPosition()]);
+            if (Data.getState() == pausing) {
+                play_pause_button.setImageResource(R.drawable.play_black);
+            } else if (Data.getState() == playing){
+                play_pause_button.setImageResource(R.drawable.pause_black);
+            }
+        }
+
+    }
 
 }

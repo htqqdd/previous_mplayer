@@ -1,85 +1,125 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/activity_now_play"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/colorPrimary">
+    android:layout_height="match_parent">
+
     <ImageView
         android:layout_width="match_parent"
-        android:layout_height="400dp"
-        android:src = "@drawable/cover2"
+        android:layout_height="450dp"
+        android:src = "@drawable/default_album"
         android:scaleType="centerCrop"
-        android:id="@+id/play_now_cover"/>
+        android:id="@+id/play_now_cover" />
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:fitsSystemWindows="true"
+        android:background="@drawable/toolbar_back"
+        app:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:popupTheme="@style/Theme.AppCompat.Light">
+    </android.support.v7.widget.Toolbar>
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/play_now_cover"
+        android:background="@color/colorPrimary"
+        android:id = "@+id/play_now_back_color"/>
 
     <SeekBar
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_below="@id/play_now_cover"
         android:id="@+id/seekBar"
-        android:layout_marginTop="16dp"/>
+        android:maxHeight="20dp"
+        android:minHeight="20dp"
+        android:progressDrawable="@drawable/seekbar_back"
+        android:thumb="@drawable/seekbar_thumb"/>
 
-    <LinearLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="80dp"
-        android:orientation="horizontal">
+        android:layout_below="@id/seekBar"
+        android:id = "@+id/control_layout"
+        android:layout_marginTop="30dp">
 
         <ImageView
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:scaleType="centerCrop" />
+            android:layout_width="60dp"
+            android:layout_height="80dp"
+            android:id="@+id/repeat_button"
+            android:scaleType="centerCrop"
+            android:src = "@drawable/repeat_grey"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="16dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="26dp"
+            android:paddingBottom="26dp"
+            android:onClick="changeRepeat"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
 
-        <LinearLayout
-            android:layout_width="0dp"
+        <RelativeLayout
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_centerInParent="true"
+            android:id = "@+id/main_control_layout">
 
             <ImageView
-                android:layout_width="30dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginRight="16dp"
-                android:layout_weight="1"
-                android:src="@drawable/left"
-                android:id = "@+id/left"/>
+                android:layout_width="60dp"
+                android:layout_height="80dp"
+                android:padding="16dp"
+                android:src="@drawable/previous"
+                android:id = "@+id/left"
+                android:onClick="previous"
+                android:background="?android:attr/selectableItemBackgroundBorderless"/>
 
 
             <android.support.design.widget.FloatingActionButton
-                android:id="@+id/play"
+                android:id="@+id/play_or_pause"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_weight="1"
                 android:onClick="play_or_pause"
                 android:src="@drawable/pause_black"
-                android:scaleType="centerInside"/>
-
+                android:layout_centerInParent="true"
+                android:scaleType="centerInside"
+                android:layout_toRightOf="@id/left"/>
             <ImageView
                 android:id="@+id/right"
-                android:layout_width="30dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginLeft="16dp"
-                android:layout_weight="1"
-                android:src="@drawable/right" />
+                android:layout_width="60dp"
+                android:layout_height="80dp"
+                android:padding="16dp"
+                android:src="@drawable/next"
+                android:onClick="next"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:layout_toRightOf="@id/play_or_pause"/>
 
-
-
-        </LinearLayout>
+        </RelativeLayout>
 
         <ImageView
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:scaleType="centerCrop" />
-    </LinearLayout>
+            android:layout_width="60dp"
+            android:layout_height="80dp"
+            android:id="@+id/shuffle_button"
+            android:scaleType="centerCrop"
+            android:src = "@drawable/shuffle_grey"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="16dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:paddingTop="26dp"
+            android:paddingBottom="26dp"
+            android:onClick="changeShuffle"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+    </RelativeLayout>
     <android.support.v7.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
-        android:layout_marginRight="16dp">
+        android:layout_marginRight="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_below="@id/control_layout">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -149,4 +189,4 @@
         </LinearLayout>
 
     </android.support.v7.widget.CardView>
-</LinearLayout>
+</RelativeLayout>

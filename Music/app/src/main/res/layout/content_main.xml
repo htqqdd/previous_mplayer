@@ -10,76 +10,89 @@
     tools:context="com.example.lixiang.music.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="60dp"
-        android:id="@+id/random_play_title">
-    <ImageView
-        android:layout_width="24dp"
-        android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:src="@drawable/shuffle_play"
-        android:layout_marginLeft="16sp"
-        android:id="@+id/random_play_button"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="随机播放所有曲目"
-        android:textColor="#E91E63"
-        android:textSize="16sp"
-        android:layout_centerVertical="true"
-        android:layout_marginLeft="16sp"
-        android:paddingLeft="40dp"
-        android:id="@+id/random_play_text"/>
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1px"
-            android:background="@android:color/darker_gray"
-            android:layout_alignParentBottom="true"/>
-    </RelativeLayout>
-    <ListView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id = "@+id/music_list">
+        android:layout_marginBottom="60dp"
+        android:orientation="vertical">
 
-    </ListView>
-</LinearLayout>
+        <RelativeLayout
+            android:id="@+id/random_play_title"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:onClick="random_play">
+
+            <ImageView
+                android:id="@+id/random_play_button"
+                android:layout_width="24dp"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="16sp"
+                android:src="@drawable/shuffle_play" />
+
+            <TextView
+                android:id="@+id/random_play_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="16sp"
+                android:paddingLeft="40dp"
+                android:text="随机播放所有曲目"
+                android:textColor="#E91E63"
+                android:textSize="16sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1px"
+                android:layout_alignParentBottom="true"
+                android:background="@android:color/darker_gray" />
+        </RelativeLayout>
+
+        <ListView
+            android:id="@+id/music_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+        </ListView>
+    </LinearLayout>
+
     <android.support.v7.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:layout_alignParentBottom="true"
-        android:background="#FFFFFF"
-        android:elevation="50dp">
+        android:layout_alignParentBottom="true">
+
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-    <ImageView
-        android:layout_width="30dp"
-        android:layout_height="60dp"
-        android:layout_marginLeft="16dp"
-        android:src = "@drawable/volume"
-        android:id="@+id/lunch_play_now_button"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="歌曲名"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:layout_marginLeft="16dp"
-        android:gravity="center_vertical"
-        android:layout_toRightOf="@id/lunch_play_now_button" />
-    <ImageView
-        android:layout_width="30dp"
-        android:layout_height="60dp"
-        android:baselineAlignBottom="true"
-        android:id="@+id/play_pause_button"
-        android:layout_alignParentRight="true"
-        android:layout_marginRight="16dp"
-        android:src= "@drawable/play_black"/>
+            android:layout_height="match_parent"
+            android:onClick="start_play_now">
+
+            <ImageView
+                android:id="@+id/lunch_play_now_button"
+                android:layout_width="30dp"
+                android:layout_height="60dp"
+                android:layout_marginLeft="16dp"
+                android:src="@drawable/up" />
+
+            <TextView
+                android:id="@+id/main_song_title"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="16dp"
+                android:layout_toRightOf="@id/lunch_play_now_button"
+                android:gravity="center_vertical"
+                android:text="歌曲名"
+                android:textColor="#000000"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/play_pause_button"
+                android:layout_width="30dp"
+                android:layout_height="60dp"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="16dp"
+                android:baselineAlignBottom="true"
+                android:src="@drawable/play_black" />
         </RelativeLayout>
 
 

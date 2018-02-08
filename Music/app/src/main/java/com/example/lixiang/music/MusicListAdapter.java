@@ -1,8 +1,10 @@
 package com.example.lixiang.music;
 
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -11,6 +13,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.bumptech.glide.Glide;
 
 import org.w3c.dom.Text;
 
@@ -70,37 +74,19 @@ public class MusicListAdapter extends BaseAdapter{
         TextView music_singer = (TextView) listItemView.findViewById(R.id.list_singer);
 
         //设置歌名
-//        if (myCursor.getString(0).length() > 15) {
-//            try {
-//                String musicTitle = myCursor.getString(0).trim()
-//                        .substring(0, 12)
-//                        + "...";
-//                music_title.setText(musicTitle);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        } else {
             viewHolder.music_title_holder.setText(myCursor.getString(0).trim());
-//        }
         //设置歌手
-//        if (myCursor.getString(2).equals("<unknown>")) {
-//            music_singer.setText("未知歌手");
-//        } else {
             viewHolder.music_singer_holder.setText(myCursor.getString(2));
-//        }
-        //设置歌曲封面
-        if (position == pos) {
-            viewHolder.music_cover_holder.setImageResource(R.drawable.isplaying);
-        } else {
-             //调用getArtwork获取封面
-            Bitmap bm = getArtwork(myContext, myCursor.getInt(3),
-                    myCursor.getInt(myCursor
-                            .getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)),
-                    true);
-            viewHolder.music_cover_holder.setImageBitmap(bm);
-            
 
-        }
+        //设置歌曲封面
+            Uri sArtworkUri = Uri.parse("content://media/external/audio/albumart");
+            Uri uri = ContentUris.withAppendedId(sArtworkUri, myCursor.getInt(6));
+            Glide
+                    .with(myContext)
+                    .load(uri)
+                    .placeholder(R.drawable.default_album)
+                    .into(viewHolder.music_cover_holder);
+
         return listItemView;
     }
 class ViewHolder{

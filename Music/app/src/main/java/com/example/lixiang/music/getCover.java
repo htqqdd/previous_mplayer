@@ -37,8 +37,10 @@ public class getCover {
             }
             return null;
         }
+
         ContentResolver res = context.getContentResolver();
         Uri uri = ContentUris.withAppendedId(sArtworkUri, album_id);
+
         if (uri != null) {
             InputStream in = null;
             try {
@@ -132,32 +134,32 @@ public class getCover {
         return bm;
     }
 
-    static int computeSampleSize(BitmapFactory.Options options, int target) {
-        int w = options.outWidth;
-        int h = options.outHeight;
-        int candidateW = w / target;
-        int candidateH = h / target;
-        int candidate = Math.max(candidateW, candidateH);
-        if (candidate == 0)
-            return 1;
-        if (candidate > 1) {
-            if ((w > target) && (w / candidate) < target)
-                candidate -= 1;
-        }
-        if (candidate > 1) {
-            if ((h > target) && (h / candidate) < target)
-                candidate -= 1;
-        }
-        Log.v("ADW", "candidate:" + candidate);
-        return candidate;
-    }
+//    static int computeSampleSize(BitmapFactory.Options options, int target) {
+//        int w = options.outWidth;
+//        int h = options.outHeight;
+//        int candidateW = w / target;
+//        int candidateH = h / target;
+//        int candidate = Math.max(candidateW, candidateH);
+//        if (candidate == 0)
+//            return 1;
+//        if (candidate > 1) {
+//            if ((w > target) && (w / candidate) < target)
+//                candidate -= 1;
+//        }
+//        if (candidate > 1) {
+//            if ((h > target) && (h / candidate) < target)
+//                candidate -= 1;
+//        }
+//        Log.v("ADW", "candidate:" + candidate);
+//        return candidate;
+//    }
 
     private static Bitmap getDefaultArtwork(Context context) {
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inPreferredConfig = Bitmap.Config.RGB_565;
 //        return BitmapFactory.decodeStream(context.getResources()
 //                .openRawResource(R.drawable.isplaying), null, opts);
-        return BitmapFactory.decodeResource(context.getResources(), R.drawable.isplaying);
+        return BitmapFactory.decodeResource(context.getResources(), R.drawable.default_album);
     }
 
     private static final Uri sArtworkUri = Uri

@@ -57,7 +57,8 @@
         <activity
             android:name=".sc_library"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-        <activity android:name=".searchActivity" />
+        <activity android:name=".searchActivity"
+            android:parentActivityName=".MainActivity"/>
         <activity android:name=".EqualizerActivity"
             android:parentActivityName=".MainActivity"
             android:theme="@style/Theme.AppCompat.Light"

@@ -58,8 +58,6 @@ import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.gyf.barlibrary.ImmersionBar;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
-import com.tapadoo.alerter.Alert;
-import com.tapadoo.alerter.Alerter;
 import org.polaric.colorful.CActivity;
 import org.polaric.colorful.Colorful;
 import org.w3c.dom.Text;
@@ -67,6 +65,8 @@ import org.w3c.dom.Text;
 import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import es.dmoral.toasty.Toasty;
 import permissions.dispatcher.NeedsPermission;
 import permissions.dispatcher.OnPermissionDenied;
 import permissions.dispatcher.OnShowRationale;
@@ -257,16 +257,17 @@ public class MainActivity extends CActivity {
                 PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
                 popupMenu.getMenuInflater().inflate(R.menu.main_menu, popupMenu.getMenu());
                 popupMenu.show();
-//                MenuItem search = popupMenu.getMenu().findItem(R.id.search);
+                MenuItem search = popupMenu.getMenu().findItem(R.id.search);
                 MenuItem sleeper = popupMenu.getMenu().findItem(R.id.sleeper);
                 MenuItem equalizer = popupMenu.getMenu().findItem(R.id.equalizer);
-//                search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-//                    @Override
-//                    public boolean onMenuItemClick(MenuItem menuItem) {
-//                        viewPager.setCurrentItem(2);
-//                        return true;
-//                    }
-//                });
+                search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        Intent intent = new Intent(MainActivity.this,searchActivity.class);
+                        startActivity(intent);
+                        return true;
+                    }
+                });
                 sleeper.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem menuItem) {
@@ -280,21 +281,9 @@ public class MainActivity extends CActivity {
                                 int duration = (hourPicked - hourNow) * 60 + minutePicked - minuteNow;
                                 if (hourPicked >= hourNow && duration > 0 && duration<360) {
                                     playService.deleteService(duration);
-                                    Alerter.create(MainActivity.this)
-                                            .setTitle("提醒")
-                                            .setText("已经定时为" + duration + "分钟后暂停音乐播放")
-                                            .setDuration(500)
-                                            .setBackgroundColor(Data.getColorAccentSetted())
-                                            .show();
-//                                    Toast.makeText(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT).show();
+                                    Toasty.success(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT, true).show();
                                 } else {
-                                    Alerter.create(MainActivity.this)
-                                            .setTitle("提醒")
-                                            .setText("所选时间须距当前时间6小时内")
-                                            .setDuration(500)
-                                            .setBackgroundColor(Data.getColorAccentSetted())
-                                            .show();
-//                                    Toast.makeText(MainActivity.this, "所选时间须为当天，且距当前时间2小时内", Toast.LENGTH_LONG).show();
+                                    Toasty.error(MainActivity.this, "所选时间须为当天，且距当前时间6小时内", Toast.LENGTH_SHORT, true).show();
                                 }
                             }
                         }, hourNow, minuteNow, true).show();
@@ -351,16 +340,17 @@ public class MainActivity extends CActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
-//        MenuItem search = menu.findItem(R.id.search);
+        MenuItem search = menu.findItem(R.id.search);
         MenuItem sleeper = menu.findItem(R.id.sleeper);
         MenuItem equalizer = menu.findItem(R.id.equalizer);
-//        search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-//            @Override
-//            public boolean onMenuItemClick(MenuItem menuItem) {
-//                viewPager.setCurrentItem(2);
-//                return true;
-//            }
-//        });
+        search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                Intent intent = new Intent(MainActivity.this,searchActivity.class);
+                startActivity(intent);
+                return true;
+            }
+        });
         sleeper.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem menuItem) {
@@ -374,21 +364,9 @@ public class MainActivity extends CActivity {
                         int duration = (hourPicked - hourNow) * 60 + minutePicked - minuteNow;
                         if (hourPicked >= hourNow && duration > 0 && duration<360) {
                             playService.deleteService(duration);
-                            Alerter.create(MainActivity.this)
-                                    .setTitle("提醒")
-                                    .setText("已经定时为" + duration + "分钟后暂停音乐播放")
-                                    .setDuration(500)
-                                    .setBackgroundColor(Data.getColorAccentSetted())
-                                    .show();
-//                                    Toast.makeText(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT).show();
+                            Toasty.success(MainActivity.this, "已经定时为" + duration + "分钟后关闭", Toast.LENGTH_SHORT, true).show();
                         } else {
-                            Alerter.create(MainActivity.this)
-                                    .setTitle("提醒")
-                                    .setText("所选时间须距当前时间6小时内")
-                                    .setDuration(500)
-                                    .setBackgroundColor(Data.getColorAccentSetted())
-                                    .show();
-//                                    Toast.makeText(MainActivity.this, "所选时间须为当天，且距当前时间2小时内", Toast.LENGTH_LONG).show();
+                            Toasty.error(MainActivity.this, "所选时间须为当天，且距当前时间6小时内", Toast.LENGTH_SHORT, true).show();
                         }
                     }
                 }, hourNow, minuteNow, true).show();
@@ -565,45 +543,25 @@ public class MainActivity extends CActivity {
         switch (Data.getPlayMode()) {
             case 3:
                 Data.setPlayMode(0);
-                Alerter.create(MainActivity.this)
-                        .setTitle("提醒")
-                        .setText("列表循环播放")
-                        .setDuration(500)
-                        .setBackgroundColor(Data.getColorAccentSetted())
-                        .show();
+                Toasty.info(MainActivity.this, "列表循环播放", Toast.LENGTH_SHORT, true).show();
                 repeat_button.setImageResource(R.drawable.repeat);
                 shuffle_button.setImageResource(R.drawable.shuffle_grey);
                 break;
             case 0:
                 Data.setPlayMode(2);
-                Alerter.create(MainActivity.this)
-                        .setTitle("提醒")
-                        .setText("单曲循环播放")
-                        .setDuration(500)
-                        .setBackgroundColor(Data.getColorAccentSetted())
-                        .show();
+                Toasty.info(MainActivity.this, "单曲循环播放", Toast.LENGTH_SHORT, true).show();
                 repeat_button.setImageResource(R.drawable.repeat_one);
                 shuffle_button.setImageResource(R.drawable.shuffle_grey);
                 break;
             case 2:
                 Data.setPlayMode(3);
-                Alerter.create(MainActivity.this)
-                        .setTitle("提醒")
-                        .setText("顺序播放")
-                        .setDuration(500)
-                        .setBackgroundColor(Data.getColorAccentSetted())
-                        .show();
+                Toasty.info(MainActivity.this, "顺序播放", Toast.LENGTH_SHORT, true).show();
                 repeat_button.setImageResource(R.drawable.repeat_grey);
                 shuffle_button.setImageResource(R.drawable.shuffle_grey);
                 break;
             case 1:
                 Data.setPlayMode(0);
-                Alerter.create(MainActivity.this)
-                        .setTitle("提醒")
-                        .setText("列表重复播放")
-                        .setDuration(500)
-                        .setBackgroundColor(Data.getColorAccentSetted())
-                        .show();
+                Toasty.info(MainActivity.this, "列表重复播放", Toast.LENGTH_SHORT, true).show();
                 shuffle_button.setImageResource(R.drawable.shuffle_grey);
                 repeat_button.setImageResource(R.drawable.repeat);
                 break;
@@ -616,22 +574,12 @@ public class MainActivity extends CActivity {
         ImageView shuffle_button = (ImageView) findViewById(R.id.shuffle_button);
         if (Data.getPlayMode() == 1) {
             Data.setPlayMode(3);
-            Alerter.create(MainActivity.this)
-                    .setTitle("提醒")
-                    .setText("顺序播放")
-                    .setDuration(500)
-                    .setBackgroundColor(Data.getColorAccentSetted())
-                    .show();
+            Toasty.info(MainActivity.this, "顺序播放", Toast.LENGTH_SHORT, true).show();
             shuffle_button.setImageResource(R.drawable.shuffle_grey);
             repeat_button.setImageResource(R.drawable.repeat_grey);
         } else {
             Data.setPlayMode(1);
-            Alerter.create(MainActivity.this)
-                    .setTitle("提醒")
-                    .setText("随机播放")
-                    .setDuration(500)
-                    .setBackgroundColor(Data.getColorAccentSetted())
-                    .show();
+            Toasty.info(MainActivity.this, "随机播放", Toast.LENGTH_SHORT, true).show();
             shuffle_button.setImageResource(R.drawable.shuffle);
             repeat_button.setImageResource(R.drawable.repeat_grey);
         }
@@ -952,7 +900,6 @@ public class MainActivity extends CActivity {
                 if (playService != null){
                 if (Data.getState() == playing){
                     seekBar.setProgress(playService.getCurrentPosition());
-                    Log.v("更新","进度"+seekBar.getProgress());
                 }}
             }
         };
@@ -1010,7 +957,7 @@ public class MainActivity extends CActivity {
             immersionView.setBackgroundColor(color);
             //沉浸状态栏
             ImmersionBar.with(MainActivity.this).barAlpha(0.3f).statusBarView(R.id.immersion_view).navigationBarColorInt(color).init();
-            Data.setColorPrimarySetted((int) o);
+            Data.setColorPrimarySetted(getResources().getColor((int) o));
         }
     }
 

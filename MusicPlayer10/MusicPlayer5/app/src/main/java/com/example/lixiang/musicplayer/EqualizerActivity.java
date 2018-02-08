@@ -54,8 +54,8 @@ public class EqualizerActivity extends CActivity {
     private Spinner spinner;
     private SwitchCompat bassboost;
     private SeekBar bass_seekbar;
-    private SwitchCompat loudEnhancer;
-    private SeekBar enhancer_seekbar;
+//    private SwitchCompat loudEnhancer;
+//    private SeekBar enhancer_seekbar;
     private SwitchCompat virtualizer;
     private SeekBar virtualizer_seekbar;
 
@@ -76,6 +76,16 @@ public class EqualizerActivity extends CActivity {
         suppressor = (SwitchCompat) findViewById(R.id.NoiseSuppressor);
         virtualizer = (SwitchCompat) findViewById(R.id.Virtualizer);
         virtualizer_seekbar = (SeekBar) findViewById(R.id.virtualizer_seekbar);
+
+        TextView title_a = (TextView) findViewById(R.id.equalizer_title_a);
+        TextView title_b = (TextView) findViewById(R.id.equalizer_title_b);
+        TextView title_c = (TextView) findViewById(R.id.equalizer_title_c);
+        title_a.setTextColor(Data.getColorAccentSetted());
+        title_b.setTextColor(Data.getColorAccentSetted());
+        title_c.setTextColor(Data.getColorAccentSetted());
+
+
+
 
 
 
@@ -472,51 +482,51 @@ public class EqualizerActivity extends CActivity {
         autoGain.setChecked(bundle.getBoolean("AutoGain",false));
         suppressor.setChecked(bundle.getBoolean("Suppressor",false));
     }
-    private class getPreferenceTask extends AsyncTask{
-        @Override
-        protected Object doInBackground(Object[] objects) {
-            SharedPreferences Pref = EqualizerActivity.this.getSharedPreferences("audioEffect",EqualizerActivity.this.MODE_PRIVATE);
-            Log.v("均衡器是否开启","是否"+Pref.getBoolean("Equalizer",false));
-            Log.v("均衡器Seekbar","是否"+Pref.getInt("Spinner",0));
-            Bundle bundle = new Bundle();
-            bundle.putBoolean("Equalizer",Pref.getBoolean("Equalizer",false));
-            bundle.putInt("Spinner",0);
-            bundle.putBoolean("Bass",Pref.getBoolean("Bass",false));
-            bundle.putInt("Bass_seekBar",0);
-            bundle.putBoolean("Enhancer",Pref.getBoolean("Enhancer",false));
-            bundle.putInt("Enhancer_seekBar",0);
-            bundle.putBoolean("Canceler",Pref.getBoolean("Canceler",false));
-            bundle.putBoolean("AutoGain",Pref.getBoolean("AutoGain",false));
-            bundle.putBoolean("Suppressor",Pref.getBoolean("Suppressor",false));
-            return bundle;
-        }
-
-        @Override
-        protected void onPostExecute(Object o) {
-            Bundle bundle = (Bundle)o;
-            //均衡器
-            LinearLayout equalizer_layout = (LinearLayout) findViewById(R.id.equalizer_seekbar);
-            if (bundle.getBoolean("Equalizer",false) == false){
-                equalizer_layout.setVisibility(GONE);
-            } else{
-                spinner.setSelection(bundle.getInt("Spinner",0));
-                equalizer_layout.setVisibility(View.VISIBLE);
-            }
-            equalizerSwitch.setChecked(bundle.getBoolean("Equalizer",false));
-            spinner.setEnabled(bundle.getBoolean("Equalizer",false));
-            //低音增强
-            bass_seekbar.setProgress(bundle.getInt("Bass_seekBar",0));
-            bass_seekbar.setEnabled(bundle.getBoolean("Bass",false));
-            //超强音量
-            enhancer_seekbar.setProgress(bundle.getInt("Enhancer_seekBar",0));
-            enhancer_seekbar.setEnabled(bundle.getBoolean("Enhancer",false));
-            //次要
-            echoCanceler.setChecked(bundle.getBoolean("Canceler",false));
-            autoGain.setChecked(bundle.getBoolean("AutoGain",false));
-            suppressor.setChecked(bundle.getBoolean("Suppressor",false));
-            super.onPostExecute(o);
-        }
-    }
+//    private class getPreferenceTask extends AsyncTask{
+//        @Override
+//        protected Object doInBackground(Object[] objects) {
+//            SharedPreferences Pref = EqualizerActivity.this.getSharedPreferences("audioEffect",EqualizerActivity.this.MODE_PRIVATE);
+//            Log.v("均衡器是否开启","是否"+Pref.getBoolean("Equalizer",false));
+//            Log.v("均衡器Seekbar","是否"+Pref.getInt("Spinner",0));
+//            Bundle bundle = new Bundle();
+//            bundle.putBoolean("Equalizer",Pref.getBoolean("Equalizer",false));
+//            bundle.putInt("Spinner",0);
+//            bundle.putBoolean("Bass",Pref.getBoolean("Bass",false));
+//            bundle.putInt("Bass_seekBar",0);
+//            bundle.putBoolean("Enhancer",Pref.getBoolean("Enhancer",false));
+//            bundle.putInt("Enhancer_seekBar",0);
+//            bundle.putBoolean("Canceler",Pref.getBoolean("Canceler",false));
+//            bundle.putBoolean("AutoGain",Pref.getBoolean("AutoGain",false));
+//            bundle.putBoolean("Suppressor",Pref.getBoolean("Suppressor",false));
+//            return bundle;
+//        }
+//
+//        @Override
+//        protected void onPostExecute(Object o) {
+//            Bundle bundle = (Bundle)o;
+//            //均衡器
+//            LinearLayout equalizer_layout = (LinearLayout) findViewById(R.id.equalizer_seekbar);
+//            if (bundle.getBoolean("Equalizer",false) == false){
+//                equalizer_layout.setVisibility(GONE);
+//            } else{
+//                spinner.setSelection(bundle.getInt("Spinner",0));
+//                equalizer_layout.setVisibility(View.VISIBLE);
+//            }
+//            equalizerSwitch.setChecked(bundle.getBoolean("Equalizer",false));
+//            spinner.setEnabled(bundle.getBoolean("Equalizer",false));
+//            //低音增强
+//            bass_seekbar.setProgress(bundle.getInt("Bass_seekBar",0));
+//            bass_seekbar.setEnabled(bundle.getBoolean("Bass",false));
+//            //超强音量
+////            enhancer_seekbar.setProgress(bundle.getInt("Enhancer_seekBar",0));
+////            enhancer_seekbar.setEnabled(bundle.getBoolean("Enhancer",false));
+//            //次要
+//            echoCanceler.setChecked(bundle.getBoolean("Canceler",false));
+//            autoGain.setChecked(bundle.getBoolean("AutoGain",false));
+//            suppressor.setChecked(bundle.getBoolean("Suppressor",false));
+//            super.onPostExecute(o);
+//        }
+//    }
 
     @Override
     protected void onDestroy() {

@@ -162,7 +162,7 @@ public class getColorTask extends AsyncTask{
         int color = getResources().getColor((int)o);
         fastScrollRecyclerView.setThumbColor(color);
         fastScrollRecyclerView.setPopupBgColor(color);
-        Data.setColorAccentSetted((int) o);
+        Data.setColorAccentSetted(getResources().getColor((int) o));
     }
 }
     private void showMusicList(){

@@ -21,9 +21,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.tapadoo.alerter.Alerter;
-
 import java.io.File;
+
+import es.dmoral.toasty.Toasty;
 
 import static android.R.attr.duration;
 import static android.R.attr.fingerprintAuthDrawable;
@@ -93,17 +93,7 @@ public static  void popupMenu(final Activity context, View v,final int position)
     public static void setAsNext(Activity context,int position){
         Data.setNextMusic(position);
         com.sothree.slidinguppanel.SlidingUpPanelLayout main_layout = (com.sothree.slidinguppanel.SlidingUpPanelLayout) context.findViewById(R.id.sliding_layout);
-//        Snackbar.make(main_layout,"已成功设置为下一首播放", Snackbar.LENGTH_LONG).setAction("好的", new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//            }
-//        }).setActionTextColor(context.getResources().getColor(R.color.colorCustomAccent)).show();
-        Alerter.create(context)
-                .setTitle("提醒")
-                .setText("已成功设置为下一首播放")
-                .setDuration(500)
-                .setBackgroundColor(Data.getColorAccentSetted())
-                .show();
+        Toasty.success(context, "已成功设置为下一首播放", Toast.LENGTH_SHORT, true).show();
     }
 
     public  static void showMusicInfo(Activity context,int position){
@@ -169,7 +159,8 @@ public static  void popupMenu(final Activity context, View v,final int position)
 //                        });
                         openSAF.show();
                     } else {
-                        Alerter.create(context).setTitle("提醒").setText("文件删除成功").setDuration(500).setBackgroundColor(Data.getColorAccentSetted()).show();
+                        Toasty.success(context, "文件删除成功", Toast.LENGTH_SHORT, true).show();
+//                        Alerter.create(context).setTitle("提醒").setText("文件删除成功").setDuration(500).setBackgroundColor(Data.getColorAccentSetted()).show();
                         //更新mediastore
                         context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
                         //重启界面

@@ -18,19 +18,14 @@ public class DownloadFragment extends Fragment {
         // Required empty public constructor
     }
 
+    public View rootView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        TextView textView = new TextView(getActivity());
-        textView.setText(R.string.hello_blank_fragment);
-        textView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Data.initialMusicPlaytimes(getActivity());
-            }
-        });
-        return textView;
+
+        rootView = inflater.inflate(R.layout.fragment_download, container, false);
+        return rootView;
     }
 
 }

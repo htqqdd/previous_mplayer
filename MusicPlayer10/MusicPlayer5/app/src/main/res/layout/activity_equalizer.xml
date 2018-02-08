@@ -47,6 +47,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
+                        android:id = "@+id/equalizer_title_a"
                         android:text="通用"
                         android:textColor="@color/colorAccent"
                         android:textStyle="bold" />
@@ -107,6 +108,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:id = "@+id/equalizer_title_b"
                         android:layout_marginBottom="16dp"
                         android:text="基本音效"
                         android:textColor="@color/colorAccent"
@@ -189,6 +191,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:id = "@+id/equalizer_title_c"
                         android:layout_marginBottom="16dp"
                         android:text="特殊音效"
                         android:textColor="@color/colorAccent"

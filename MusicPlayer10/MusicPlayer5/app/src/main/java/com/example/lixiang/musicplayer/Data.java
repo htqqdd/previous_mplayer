@@ -1,17 +1,12 @@
 package com.example.lixiang.musicplayer;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.Service;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import java.io.File;
@@ -19,18 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static android.R.attr.id;
-import static android.R.attr.logo;
-import static android.R.attr.publicKey;
-import static android.R.attr.value;
-import static android.icu.lang.UCharacter.GraphemeClusterBreak.L;
-import static android.os.Build.VERSION_CODES.M;
 
 /**
  * Created by lixiang on 2017/3/16.

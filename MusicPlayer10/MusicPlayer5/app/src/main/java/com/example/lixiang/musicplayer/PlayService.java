@@ -1,12 +1,10 @@
 package com.example.lixiang.musicplayer;
 
-import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.WallpaperManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -14,11 +12,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
-import android.media.MediaDescription;
 import android.media.MediaMetadata;
 import android.media.MediaPlayer;
 import android.media.audiofx.AcousticEchoCanceler;
@@ -27,56 +23,30 @@ import android.media.audiofx.BassBoost;
 import android.media.audiofx.Equalizer;
 import android.media.audiofx.LoudnessEnhancer;
 import android.media.audiofx.NoiseSuppressor;
-import android.media.audiofx.PresetReverb;
 import android.media.audiofx.Virtualizer;
-import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Binder;
-import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
-import android.os.RemoteException;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
-import android.support.v7.app.NotificationCompat;
 import android.support.v7.graphics.Palette;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.view.View;
-import android.widget.LinearLayout;
-import android.widget.SeekBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
-import com.tapadoo.alerter.Alert;
-import com.tapadoo.alerter.Alerter;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 
-import static android.R.attr.action;
-import static android.R.attr.bitmap;
-import static android.R.attr.duration;
-import static android.media.audiofx.PresetReverb.PRESET_SMALLROOM;
-import static android.os.Build.VERSION_CODES.M;
+import es.dmoral.toasty.Toasty;
+
 import static com.example.lixiang.musicplayer.Data.deleteAction;
 import static com.example.lixiang.musicplayer.Data.initialize;
 import static com.example.lixiang.musicplayer.Data.mediaChangeAction;
@@ -87,15 +57,11 @@ import static com.example.lixiang.musicplayer.Data.playAction;
 import static com.example.lixiang.musicplayer.Data.playing;
 import static com.example.lixiang.musicplayer.Data.previousAction;
 import static com.example.lixiang.musicplayer.Data.sc_playAction;
-import static com.example.lixiang.musicplayer.Data.seektoAction;
-import static com.example.lixiang.musicplayer.Data.serviceStarted;
-import static com.example.lixiang.musicplayer.R.drawable.next;
-import static com.example.lixiang.musicplayer.R.id.bass_seekbar;
-import static com.example.lixiang.musicplayer.getCover.getArtwork;
 
-public class PlayService extends Service implements AudioManager.OnAudioFocusChangeListener {
+public class PlayService extends Service implements AudioManager.OnAudioFocusChangeListener,MediaPlayer.OnCompletionListener,MediaPlayer.OnErrorListener {
     private String path;
     private MediaPlayer mediaPlayer;
+    private boolean fromUser = true;
     private ServiceReceiver serviceReceiver;
     private boolean onetime = true;
     private static final int NOTIFICATION_ID = 101;
@@ -143,19 +109,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
         mediaPlayer = new MediaPlayer();
         audioSessionId = mediaPlayer.getAudioSessionId();
         initialAudioEffect(audioSessionId);
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                next();
-            }
-        });
-        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
-                mediaPlayer.reset();
-                return false;
-            }
-        });
+        mediaPlayer.setOnCompletionListener(this);
+        mediaPlayer.setOnErrorListener(this);
         if (mediaSessionManager == null) {
             mediaSessionManager = (MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE);
             mediaSession = new MediaSession(getApplicationContext(), "AudioPlayer");
@@ -202,12 +157,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 play(positionNow);
             }
         }
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                next();
-            }
-        });
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -233,21 +182,27 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 //The service gained audio focus, so it needs to start playing.
                 if (mediaPlayer == null) {
                     mediaPlayer = new MediaPlayer();
+                    mediaPlayer.setOnCompletionListener(this);
+                    mediaPlayer.setOnErrorListener(this);
                     audioSessionId = mediaPlayer.getAudioSessionId();
                     initialAudioEffect(audioSessionId);
-                } else if (!mediaPlayer.isPlaying()) resume();
+                } else if (!mediaPlayer.isPlaying() && fromUser) resume();
                 mediaPlayer.setVolume(1.0f, 1.0f);
                 break;
             case AudioManager.AUDIOFOCUS_LOSS:
                 //The service lost audio focus, the user probably moved to playing media on another app, so release the media player.
                 Log.v("AUDIOFOCUS_LOSS", "焦点丢失");
+                fromUser = false;
                 pause();
                 releaseMedia();
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
                 Log.v("FOCUS_LOSS_TRANSIENT", "焦点暂时丢失");
                 //Focus lost for a short time, pause the MediaPlayer.
-                if (mediaPlayer.isPlaying()) pause();
+                if (mediaPlayer.isPlaying()) {
+                    fromUser = false;
+                    pause();
+                }
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
                 // Lost focus for a short time, probably a notification arrived on the device, lower the playback volume.
@@ -259,6 +214,20 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 }
                 break;
         }
+    }
+
+    @Override
+    public void onCompletion(MediaPlayer mediaPlayer) {
+//        next();
+        Intent intent = new Intent("service_broadcast");
+        intent.putExtra("Control", nextAction);
+        sendBroadcast(intent);
+    }
+
+    @Override
+    public boolean onError(MediaPlayer mediaPlayer, int i, int i1) {
+        mediaPlayer.reset();
+        return false;
     }
 
     public void releaseMedia() {
@@ -281,6 +250,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
 
     public void play(final int position) {
         Log.v("play方法执行", "play" + Data.getServiceState());
+        fromUser = true;
         requestAudioFocus();
         mediaPlayer.reset();
         Log.v("音乐Session", "音乐" + mediaPlayer.getAudioSessionId());
@@ -599,7 +569,7 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
                 positionNow = Data.getNextMusic();
                 Data.setPosition(positionNow);
                 Data.setNextMusic(-1);
-                return Data.getNextMusic();
+                return positionNow;
             }
             return null;
         }
@@ -610,7 +580,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
             if (o != null) {
                 play((int) o);
             } else {
-                Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
+                Toasty.info(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT, true).show();
+//                Toast.makeText(PlayService.this, "没有下一曲了", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -710,7 +681,8 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
             if (o != null) {
                 play((int) o);
             } else {
-                Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
+                Toasty.info(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT, true).show();
+//                Toast.makeText(PlayService.this, "没有上一曲了", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -955,14 +927,6 @@ public class PlayService extends Service implements AudioManager.OnAudioFocusCha
     public void setBassStrength(Short strength) {
         mBass.setStrength(strength);
     }
-
-//    public void setEnhancer(boolean b) {
-//        loudnessEnhancer.setEnabled(b);
-//    }
-//
-//    public void setEnhancerTargetGain(int i) {
-//        loudnessEnhancer.setTargetGain(i);
-//    }
 
     public void setVirtualizer(Boolean b) {
         mVirtualizer.setEnabled(b);

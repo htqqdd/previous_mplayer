@@ -77,13 +77,15 @@
         <ImageView
             android:id="@+id/back"
             android:layout_width="26dp"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginTop="5dp"
             android:src="@mipmap/ic_back"
             android:background="?android:attr/selectableItemBackgroundBorderless"/>
         <ImageView
             android:id="@+id/about"
             android:layout_width="26dp"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginTop="5dp"
             android:src="@mipmap/ic_about"
             android:layout_alignParentRight="true"
             android:layout_marginRight="12dp"
@@ -95,8 +97,7 @@
         android:id="@+id/play_now_back_color"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/play_now_cover"
-        android:background="@color/colorPrimary" />
+        android:layout_below="@id/play_now_cover" />
 
 
     <SeekBar
@@ -126,7 +127,7 @@
             android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"
             android:layout_marginLeft="16dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
             android:onClick="changeRepeat"
             android:paddingBottom="26dp"
             android:paddingLeft="16dp"
@@ -149,6 +150,7 @@
                 android:layout_centerVertical="true"
                 android:onClick="previous"
                 android:padding="16dp"
+                android:foreground="?android:attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/previous" />
 
 
@@ -171,7 +173,8 @@
                 android:layout_toRightOf="@id/play_or_pause"
                 android:onClick="next"
                 android:padding="16dp"
-                android:src="@drawable/next" />
+                android:src="@drawable/next"
+                android:foreground="?android:attr/selectableItemBackgroundBorderless"/>
 
         </RelativeLayout>
 
@@ -182,7 +185,7 @@
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true"
             android:layout_marginRight="16dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:foreground="?android:attr/selectableItemBackgroundBorderless"
             android:onClick="changeShuffle"
             android:paddingBottom="26dp"
             android:paddingLeft="16dp"

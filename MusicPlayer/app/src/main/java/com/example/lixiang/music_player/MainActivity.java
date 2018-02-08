@@ -79,6 +79,7 @@ import com.transitionseverywhere.extra.Scale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.text.Format;
 import java.util.ArrayList;
@@ -231,7 +232,7 @@ public class MainActivity extends AestheticActivity {
             }
         });
 
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
+        final TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(viewPager);
         View view1 = getLayoutInflater().inflate(R.layout.custom_tab, null);
         TextView textView = (TextView) view1.findViewById(R.id.text);
@@ -358,9 +359,30 @@ public class MainActivity extends AestheticActivity {
                         @Override
                         public void onClick(View view) {
                             if (!otherLyricView.hasLrc()) {
+                                //判断是否有本地歌词
+                            String path = Data.getData(Data.getPosition());
+                            int total = path.length();
+                            File file = new File(path.substring(0,total-4)+".lrc");
+                            if (file.isFile() && file.exists()){
+                                //加载歌词
+                                otherLyricView.loadLrc(file);
+                                changeVisibility();
+                                otherLyricView.setOnPlayClickListener(new LrcView.OnPlayClickListener() {
+                                    @Override
+                                    public boolean onPlayClick(long time) {
+                                        fromLyric = true;
+                                        seekBar.setProgress((int) time);
+                                        return false;
+                                    }
+                                });
+                            }else if (Data.getLocal_net_mode() == false) {
                                 new getLyricTask().execute(Data.getTitle(Data.getPosition()), Data.getArtist(Data.getPosition()));
+                                changeVisibility();
+                            }else {
+                                Toast.makeText(MainActivity.this, "当前处于离线模式", Toast.LENGTH_SHORT).show();                            }
+                            }else {
+                                changeVisibility();
                             }
-                            changeVisibility();
                         }
                     });
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
@@ -391,35 +413,35 @@ public class MainActivity extends AestheticActivity {
         about.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                    PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
-                    popupMenu.getMenuInflater().inflate(R.menu.main_menu, popupMenu.getMenu());
-                    popupMenu.show();
-                    MenuItem search = popupMenu.getMenu().findItem(R.id.search);
-                    MenuItem sleeper = popupMenu.getMenu().findItem(R.id.sleeper);
-                    MenuItem equalizer = popupMenu.getMenu().findItem(R.id.equalizer);
-                    search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem menuItem) {
-                            Intent intent = new Intent(MainActivity.this, searchActivity.class);
-                            startActivity(intent);
-                            return true;
-                        }
-                    });
-                    sleeper.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem menuItem) {
-                            //Timepicker Dialog
-                            sleeper();
-                            return true;
-                        }
-                    });
-                    equalizer.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-                        @Override
-                        public boolean onMenuItemClick(MenuItem menuItem) {
-                            equalizer();
-                            return false;
-                        }
-                    });
+                PopupMenu popupMenu = new PopupMenu(MainActivity.this, view);
+                popupMenu.getMenuInflater().inflate(R.menu.main_menu, popupMenu.getMenu());
+                popupMenu.show();
+                MenuItem search = popupMenu.getMenu().findItem(R.id.search);
+                MenuItem sleeper = popupMenu.getMenu().findItem(R.id.sleeper);
+                MenuItem equalizer = popupMenu.getMenu().findItem(R.id.equalizer);
+                search.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        Intent intent = new Intent(MainActivity.this, searchActivity.class);
+                        startActivity(intent);
+                        return true;
+                    }
+                });
+                sleeper.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        //Timepicker Dialog
+                        sleeper();
+                        return true;
+                    }
+                });
+                equalizer.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        equalizer();
+                        return false;
+                    }
+                });
             }
         });
 
@@ -493,11 +515,11 @@ public class MainActivity extends AestheticActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (playService != null) {
-                if (fromUser || fromLyric) {
-                    playService.seekto(progress);
-                    fromLyric = false;
-                }
-                if (Data.getState() == playing) {
+                    if (fromUser || fromLyric) {
+                        playService.seekto(progress);
+                        fromLyric = false;
+                    }
+                    if (Data.getState() == playing) {
                         //更新歌词
                         otherLyricView.updateTime(playService.getCurrentPosition());
                     }
@@ -587,12 +609,12 @@ public class MainActivity extends AestheticActivity {
 
     //播放，暂停按钮
     public void title_play_or_pause(View view) {
-            if (Data.getState() == playing) {
-                playService.pause();
-                playService.removeAudioFocus();
-            } else if (Data.getState() == pausing) {
-                playService.resume();
-            }
+        if (Data.getState() == playing) {
+            playService.pause();
+            playService.removeAudioFocus();
+        } else if (Data.getState() == pausing) {
+            playService.resume();
+        }
     }
 
     public void main_play_or_pause(View v) {
@@ -605,11 +627,11 @@ public class MainActivity extends AestheticActivity {
     }
 
     public void previous(View v) {
-            playService.previous();
+        playService.previous();
     }
 
     public void next(View v) {
-            playService.next();
+        playService.next();
     }
 
     public void changeRepeat(View v) {
@@ -923,6 +945,10 @@ public class MainActivity extends AestheticActivity {
     private class screenAdaptionTask extends AsyncTask {
         @Override
         protected Object doInBackground(Object[] objects) {
+            //检测网络模式设置
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+            Boolean local_net_mode = sharedPref.getBoolean("local_net_mode", false);
+            Data.setLocal_net_mode(local_net_mode);
             return (int) (getResources().getDisplayMetrics().heightPixels * 0.6);
         }
 
@@ -1039,14 +1065,13 @@ public class MainActivity extends AestheticActivity {
                 OkHttpClient client = new OkHttpClient();
                 Request request = new Request.Builder().url("http://music.163.com/api/song/lyric?os=pc&id="+strings[0]+"&lv=-1&kv=0&tv=0").build();
                 Response response = client.newCall(request).execute();
-//                if (response.isSuccessful()) {
-                    String res = response.body().string();
-                    JSONObject jsonObject = new JSONObject(res);
-                    if (jsonObject.getInt("code") == 200) {
-                        JSONObject lrcJson = jsonObject.getJSONObject("lrc");
-                        lyric = praseLyric(lrcJson.getString("lyric"));
-                    }
-//                }
+                String res = response.body().string();
+                JSONObject jsonObject = new JSONObject(res);
+                if (jsonObject.getInt("code") == 200) {
+                    JSONObject lrcJson = jsonObject.getJSONObject("lrc");
+                    lyric = praseLyric(lrcJson.getString("lyric"));
+
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1121,7 +1146,7 @@ public class MainActivity extends AestheticActivity {
                             otherLyricView.loadLrc("");
                             otherLyricView.setLabel("未搜索到匹配歌词");
                         }
-                        break;
+                    break;
                 case "404":
                     if (!hasNetwork(MainActivity.this)){
                         otherLyricView.setLabel("未搜索到匹配歌词");
@@ -1185,8 +1210,8 @@ public class MainActivity extends AestheticActivity {
         }catch (Exception e){
             e.printStackTrace();
         }
-            return lyric;
-        }
+        return lyric;
+    }
 
     private void changeVisibility(){
         View music_info_cardView = findViewById(R.id.music_info_cardView);

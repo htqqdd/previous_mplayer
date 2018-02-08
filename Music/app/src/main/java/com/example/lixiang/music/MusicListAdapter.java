@@ -84,7 +84,7 @@ public class MusicListAdapter extends BaseAdapter{
             Glide
                     .with(myContext)
                     .load(uri)
-                    .placeholder(R.drawable.default_album)
+                    .placeholder(R.drawable.isplaying)
                     .into(viewHolder.music_cover_holder);
 
         return listItemView;

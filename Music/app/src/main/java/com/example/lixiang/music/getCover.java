@@ -159,7 +159,7 @@ public class getCover {
         opts.inPreferredConfig = Bitmap.Config.RGB_565;
 //        return BitmapFactory.decodeStream(context.getResources()
 //                .openRawResource(R.drawable.isplaying), null, opts);
-        return BitmapFactory.decodeResource(context.getResources(), R.drawable.default_album);
+        return BitmapFactory.decodeResource(context.getResources(), R.drawable.isplaying);
     }
 
     private static final Uri sArtworkUri = Uri

@@ -175,7 +175,7 @@ public class MainActivity extends CActivity {
         new screenAdaptionTask().execute();
 
        //沉浸状态栏
-        ImmersionBar.with(this).barAlpha(0.3f).init();
+        ImmersionBar.with(this).barAlpha(0.3f).statusBarView(R.id.immersion_view).init();
 
         viewPager = (ViewPager) findViewById(R.id.viewpager);
         SimpleFragmentPagerAdapter adapter = new SimpleFragmentPagerAdapter(getSupportFragmentManager());
@@ -371,8 +371,7 @@ public class MainActivity extends CActivity {
             }
         });
 
-
-
+        new setColorTask().execute();
 //        SharedPreferences pref = getSharedPreferences("last_music",MODE_PRIVATE);
 //        Data.setPosition(pref.getInt("Id",0));
     }
@@ -475,7 +474,22 @@ public class MainActivity extends CActivity {
         updateSeekBar();
 
         //设置起始页
-        new setStartPageTask().execute();
+        if (isfromSc == false) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+            String start_page = sharedPref.getString("start_page", "");
+            switch (start_page) {
+                case "suggestion":
+                    viewPager.setCurrentItem(0);
+                    break;
+                case "list":
+                    viewPager.setCurrentItem(1);
+                    break;
+                case "cloud":
+                    viewPager.setCurrentItem(2);
+                    break;
+                default:
+            }
+        }
 
     }
 
@@ -818,34 +832,6 @@ public class MainActivity extends CActivity {
         }
     }
 
-    private class setStartPageTask extends AsyncTask{
-        @Override
-        protected Object doInBackground(Object[] objects) {
-            if (isfromSc == false) {
-                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                String start_page = sharedPref.getString("start_page", "");
-                return start_page;
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Object o) {
-            super.onPostExecute(o);
-            switch ((String)o) {
-                case "suggestion":
-                    viewPager.setCurrentItem(0);
-                    break;
-                case "list":
-                    viewPager.setCurrentItem(1);
-                    break;
-                case "cloud":
-                    viewPager.setCurrentItem(2);
-                    break;
-                default:
-            }
-        }
-    }
 
     private class screenAdaptionTask extends AsyncTask{
         @Override
@@ -887,6 +873,59 @@ public class MainActivity extends CActivity {
             }
         };
         mTimer.schedule(task,500,1000);
+    }
+
+    private class setColorTask extends AsyncTask{
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+            String primary_color = sharedPref.getString("primary_color", "");
+            switch (primary_color) {
+                case "red":
+                    return R.color.md_red_500;
+                case "pink":
+                    return R.color.md_pink_500;
+                case "purple":
+                    return R.color.md_purple_500;
+                case "deep_purple":
+                    return R.color.md_deep_purple_500;
+                case "indigo":
+                    return R.color.md_indigo_500;
+                case "blue":
+                    return R.color.md_blue_500;
+                case "light_blue":
+                    return R.color.md_light_blue_500;
+                case "cyan":
+                    return R.color.md_cyan_500;
+                case "teal":
+                    return R.color.md_teal_500;
+                case "green":
+                    return R.color.md_green_500;
+                case "light_green":
+                    return R.color.md_light_green_500;
+                case "lime":
+                    return R.color.md_lime_500;
+                case "yellow":
+                    return R.color.md_yellow_500;
+                case "amber":
+                    return R.color.md_amber_500;
+                case "orange":
+                    return R.color.md_orange_500;
+                case "deep_orange":
+                    return R.color.md_deep_orange_500;
+                default:
+            }
+            return R.color.md_teal_500;
+        }
+
+        @Override
+        protected void onPostExecute(Object o) {
+            super.onPostExecute(o);
+            int color = getResources().getColor((int)o);
+            View immersionView = findViewById(R.id.immersion_view);
+            immersionView.setBackgroundColor(color);
+            Data.setColorPrimarySetted((int) o);
+        }
     }
 
 }

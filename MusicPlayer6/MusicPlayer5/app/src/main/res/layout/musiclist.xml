@@ -3,9 +3,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
     android:layout_width="match_parent"
-    android:layout_height="76dp">
+    android:layout_height="80dp">
     <ImageView
-        android:layout_width="76dp"
+        android:layout_width="80dp"
         android:layout_height="match_parent"
         android:layout_alignParentLeft="true"
         android:id="@+id/list_cover"
@@ -14,13 +14,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_marginRight="56dp"
         android:layout_toRightOf="@id/list_cover">
         <TextView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_marginBottom="2dp"
+            android:layout_marginRight="50dp"
             android:gravity="bottom"
             android:text = "歌曲名"
             android:textSize="14sp"
@@ -33,6 +33,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:gravity="top"
+            android:layout_marginRight="50dp"
             android:layout_marginTop="2dp"
             android:text = "歌手"
             android:textSize="12sp"
